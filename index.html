@@ -542,28 +542,66 @@ const Audio3D = (() => {
 })();
 
 // ════════════════════════════════════════════════════════════
-//  MULTIPLAYER  (BroadcastChannel — same-browser tabs)
+//  MULTIPLAYER  (WebSocket — real online cross-device play)
+//  Uses wss://socketsbay.com free public relay — no server needed
 // ════════════════════════════════════════════════════════════
-let channel = null;
+let ws = null;
+let wsReady = false;
+let wsQueue = [];
 let myRole = null; // 'cat' | 'dog'
 let roomCode = '';
 let isHost = false;
 let peerConnected = false;
 let peerName = 'Opponent';
+let wsReconnectTimer = null;
+let wsCurrentCode = '';
 
 function setupChannel(code) {
-  if (channel) channel.close();
-  channel = new BroadcastChannel('cvd_' + code);
-  channel.onmessage = handleMsg;
+  wsCurrentCode = code;
+  if (ws) { try { ws.close(); } catch(e){} }
+  wsReady = false;
+  wsQueue = [];
+  // Each room gets its own channel via a unique path derived from the room code.
+  // socketsbay free tier: wss://socketsbay.com/wss/v2/{numChannels}/{apiKey}/
+  // We use the public demo key with a channel name baked into every message.
+  const wsUrl = 'wss://socketsbay.com/wss/v2/1/demo/';
+  ws = new WebSocket(wsUrl);
+  ws.onopen = () => {
+    wsReady = true;
+    wsQueue.forEach(m => ws.send(m));
+    wsQueue = [];
+  };
+  ws.onmessage = (e) => {
+    let m;
+    try { m = JSON.parse(e.data); } catch { return; }
+    // Filter to only messages for our room and not from ourselves
+    if (!m || m.room !== wsCurrentCode) return;
+    if (m.from === myRole) return; // ignore own echoes
+    handleMsg(m);
+  };
+  ws.onerror = () => {
+    updateConnBadgeError();
+  };
+  ws.onclose = () => {
+    wsReady = false;
+    // Auto-reconnect while game is active or waiting
+    if (wsCurrentCode && !gameRunning) {
+      wsReconnectTimer = setTimeout(() => setupChannel(wsCurrentCode), 2000);
+    }
+  };
 }
 
 function send(type, data={}) {
-  if (!channel) return;
-  channel.postMessage({ type, role: myRole, ...data });
+  if (myRole === null) return; // solo mode — no network needed
+  const msg = JSON.stringify({ type, role: myRole, from: myRole, room: wsCurrentCode, ...data });
+  if (ws && wsReady && ws.readyState === WebSocket.OPEN) {
+    ws.send(msg);
+  } else {
+    wsQueue.push(msg);
+  }
 }
 
-function handleMsg(e) {
-  const m = e.data;
+function handleMsg(m) {
   if (!m) return;
   switch(m.type) {
     case 'hello':
@@ -601,6 +639,15 @@ function handleMsg(e) {
   }
 }
 
+function updateConnBadgeError() {
+  const badge = document.getElementById('connBadge');
+  const dot = document.getElementById('connDot');
+  const txt = document.getElementById('connText');
+  badge.style.display = 'flex';
+  dot.className = 'red';
+  txt.textContent = '● Connection error — retrying…';
+}
+
 function updateConnBadge(connected) {
   const badge = document.getElementById('connBadge');
   const dot = document.getElementById('connDot');
@@ -608,7 +655,7 @@ function updateConnBadge(connected) {
   badge.style.display = 'flex';
   if (connected) {
     dot.className = '';
-    txt.textContent = '● ' + peerName + ' connected · Room: ' + roomCode;
+    txt.textContent = peerName + ' connected · Room: ' + roomCode;
   } else {
     dot.className = 'orange';
     txt.textContent = '● Waiting for opponent...';
@@ -1516,15 +1563,14 @@ document.getElementById('createRoomBtn').addEventListener('click',()=>{
   if (!code||code.length<3) { document.getElementById('lobbyStatus').textContent='Enter a valid room code!'; return; }
   myName=name; myRole=pendingRole||'cat'; roomCode=code; isHost=true;
   setupChannel(code);
-  send('hello',{name:myName});
-  document.getElementById('lobbyStatus').innerHTML='<span class="pulse">⏳ Waiting for opponent… Share code: <b>'+code+'</b></span>';
+  document.getElementById('lobbyStatus').innerHTML='<span class="pulse">⏳ Connecting… then waiting for opponent. Share code: <b>'+code+'</b></span>';
   document.getElementById('createRoomBtn').disabled=true;
   document.getElementById('joinRoomBtn').disabled=true;
-  // Ping repeatedly
+  // Wait for WS to open, then start pinging
   const ping=setInterval(()=>{
-    if (peerConnected||!gameRunning===false) { clearInterval(ping); return; }
+    if (peerConnected) { clearInterval(ping); return; }
     send('hello',{name:myName});
-  },1500);
+  },1200);
 });
 
 document.getElementById('joinRoomBtn').addEventListener('click',()=>{
@@ -1533,11 +1579,10 @@ document.getElementById('joinRoomBtn').addEventListener('click',()=>{
   if (!code||code.length<3) { document.getElementById('lobbyStatus').textContent='Enter a valid room code!'; return; }
   myName=name; myRole=pendingRole||'dog'; roomCode=code; isHost=false;
   setupChannel(code);
-  send('hello',{name:myName});
   document.getElementById('lobbyStatus').innerHTML='<span class="pulse">🔗 Connecting to room <b>'+code+'</b>…</span>';
   document.getElementById('createRoomBtn').disabled=true;
   document.getElementById('joinRoomBtn').disabled=true;
-  // Keep trying
+  // Keep trying until connected
   const ping=setInterval(()=>{
     if (peerConnected) { clearInterval(ping); return; }
     send('hello',{name:myName});
@@ -1545,10 +1590,8 @@ document.getElementById('joinRoomBtn').addEventListener('click',()=>{
 });
 
 // ════════════════════════════════════════════════════════════
-//  SOLO MODE (single device fallback)
-//  If both players are on the same device, this still works —
-//  one player uses mouse (cats), other uses keyboard (dogs).
-//  The BroadcastChannel just doesn't fire cross-tab here.
+//  SOLO MODE (single device — both players on same screen)
+//  Cat player uses mouse, Dog player uses keyboard 1/2/3.
 // ════════════════════════════════════════════════════════════
 
 // Allow solo start: if after 5s no peer, let host start anyway
