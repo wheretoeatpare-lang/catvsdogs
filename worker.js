@@ -1,9 +1,53 @@
 // Cats vs Dogs — Cloudflare Worker
-// Serves index.html. The HTML itself handles WebSocket multiplayer
-// via socketsbay.com free relay — no Durable Objects needed.
+// Handles: 1) serving the game HTML  2) WebSocket relay for multiplayer
+// Uses Cloudflare's native WebSocket API — no Durable Objects needed.
+// Rooms are kept in a global Map (resets on worker restart, fine for games).
+
+const rooms = new Map(); // roomCode -> Set of WebSocket connections
 
 export default {
-  async fetch(request, env) {
+  async fetch(request) {
+    const url = new URL(request.url);
+
+    // WebSocket relay endpoint
+    if (url.pathname === '/ws') {
+      const room = url.searchParams.get('room') || '';
+      if (!room) return new Response('Missing room', { status: 400 });
+
+      // Upgrade to WebSocket
+      const upgradeHeader = request.headers.get('Upgrade');
+      if (upgradeHeader !== 'websocket') {
+        return new Response('Expected WebSocket', { status: 426 });
+      }
+
+      const [client, server] = Object.values(new WebSocketPair());
+      server.accept();
+
+      // Add to room
+      if (!rooms.has(room)) rooms.set(room, new Set());
+      const roomSet = rooms.get(room);
+      roomSet.add(server);
+
+      server.addEventListener('message', (event) => {
+        // Broadcast to everyone else in the same room
+        for (const ws of roomSet) {
+          if (ws !== server && ws.readyState === 1 /* OPEN */) {
+            ws.send(event.data);
+          }
+        }
+      });
+
+      const cleanup = () => {
+        roomSet.delete(server);
+        if (roomSet.size === 0) rooms.delete(room);
+      };
+      server.addEventListener('close', cleanup);
+      server.addEventListener('error', cleanup);
+
+      return new Response(null, { status: 101, webSocket: client });
+    }
+
+    // Serve game HTML for all other routes
     return new Response(HTML, {
       headers: { 'Content-Type': 'text/html; charset=UTF-8' }
     });
@@ -567,7 +611,8 @@ function setupChannel(code) {
   _wsRoom = code;
   if (_ws) { _ws.onclose=null; try{_ws.close();}catch(e){} }
   _wsQ = [];
-  _ws = new WebSocket('wss://socketsbay.com/wss/v2/1/demo/' + encodeURIComponent(code) + '/');
+  const proto = location.protocol==='https:' ? 'wss:' : 'ws:';
+  _ws = new WebSocket(proto + '//' + location.host + '/ws?room=' + encodeURIComponent(code));
   _ws.onopen = ()=>{ _wsQ.forEach(m=>_ws.send(m)); _wsQ=[]; };
   _ws.onmessage = (e)=>{
     try {
@@ -967,7 +1012,7 @@ let selectedCat=null, dogRow=-1;
 let catCDs={}, dogCDs={};
 let hoverR=-1, hoverC=-1;
 let raf, lastTs=0;
-let myName='Player', myRole=null;
+let myName='Player';
 
 // ════════════════════════════════════════════════════════════
 //  ENTITY CLASSES
