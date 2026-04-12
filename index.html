@@ -306,7 +306,6 @@ html,body{
 .dog-wins .result-title{color:var(--dog);}
 .result-sub{font-size:18px;font-weight:700;color:var(--muted);margin-bottom:28px;}
 </style>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 </head>
 <body>
 
@@ -545,61 +544,44 @@ const Audio3D = (() => {
 // ════════════════════════════════════════════════════════════
 //  MULTIPLAYER  (BroadcastChannel — same-browser tabs)
 // ════════════════════════════════════════════════════════════
-let _peer=null,_conn=null,_connQ=[];
 let myRole = null; // 'cat' | 'dog'
 let roomCode = '';
 let isHost = false;
 let peerConnected = false;
 let peerName = 'Opponent';
+let _ws = null, _wsQ = [];
 
 function setupChannel(code) {
-  if (_peer) { try{_peer.destroy();}catch(e){} }
-  _conn = null; _connQ = [];
-
-  // Host uses room code as their PeerJS ID, joiner connects to it
-  const peerId = isHost ? 'cvd-'+code : 'cvd-'+code+'-dog';
-  const otherId = isHost ? 'cvd-'+code+'-dog' : 'cvd-'+code;
-
-  _peer = new Peer(peerId, {host:'0.peerjs.com', port:443, path:'/', secure:true});
-
-  _peer.on('open', function() {
-    if (!isHost) {
-      // Joiner connects to host
-      _setupConn(_peer.connect(otherId, {reliable:true}));
-    }
-  });
-
-  _peer.on('connection', function(conn) {
-    // Host receives joiner's connection
-    _setupConn(conn);
-  });
-
-  _peer.on('error', function(e) {
-    // If ID taken, just reconnect with slight variation
-    console.log('PeerJS error:', e.type);
-    setTimeout(function(){ setupChannel(code); }, 2000);
-  });
-}
-
-function _setupConn(conn) {
-  _conn = conn;
-  conn.on('open', function() {
-    _connQ.forEach(function(m){ conn.send(m); });
-    _connQ = [];
-  });
-  conn.on('data', function(m) {
-    if (m && m._f !== myRole) handleMsg({data: m});
-  });
-  conn.on('close', function() {
-    _conn = null;
-  });
+  roomCode = code;
+  if (_ws) { try { _ws.close(); } catch(e) {} }
+  _wsQ = [];
+  function connect() {
+    _ws = new WebSocket('wss://ws.postman-echo.com/raw');
+    _ws.onopen = function() {
+      _wsQ.forEach(function(m) { _ws.send(m); });
+      _wsQ = [];
+    };
+    _ws.onmessage = function(e) {
+      var m;
+      try { m = JSON.parse(e.data); } catch(ex) { return; }
+      if (!m || m._r !== code || m._f === myRole) return;
+      handleMsg({ data: m });
+    };
+    _ws.onclose = function() {
+      if (!peerConnected && !gameRunning) setTimeout(connect, 2000);
+    };
+    _ws.onerror = function() { _ws.close(); };
+  }
+  connect();
 }
 
 function send(type, data={}) {
   if (myRole === null) return;
-  const m = Object.assign({type:type, role:myRole, _f:myRole}, data||{});
-  if (_conn && _conn.open) _conn.send(m);
-  else _connQ.push(m);
+  var msg = JSON.stringify(
+    Object.assign({ _r: roomCode, _f: myRole, type: type, role: myRole }, data || {})
+  );
+  if (_ws && _ws.readyState === 1) _ws.send(msg);
+  else _wsQ.push(msg);
 }
 
 function handleMsg(e) {
@@ -984,7 +966,7 @@ let selectedCat=null, dogRow=-1;
 let catCDs={}, dogCDs={};
 let hoverR=-1, hoverC=-1;
 let raf, lastTs=0;
-let myName='Player', myRole=null;
+let myName='Player';
 
 // ════════════════════════════════════════════════════════════
 //  ENTITY CLASSES
