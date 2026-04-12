@@ -1,67 +1,16 @@
-// ════════════════════════════════════════════════════════════
-//  Cats vs Dogs — Cloudflare Worker
-//  Serves the game HTML + WebSocket relay via Durable Objects
-// ════════════════════════════════════════════════════════════
+// Cats vs Dogs — Cloudflare Worker
+// Serves index.html. The HTML itself handles WebSocket multiplayer
+// via socketsbay.com free relay — no Durable Objects needed.
 
 export default {
   async fetch(request, env) {
-    const url = new URL(request.url);
-
-    // WebSocket upgrade for multiplayer relay
-    if (url.pathname === '/ws') {
-      const room = url.searchParams.get('room') || 'default';
-      const id = env.ROOMS.idFromName(room);
-      const obj = env.ROOMS.get(id);
-      return obj.fetch(request);
-    }
-
-    // Serve the game HTML
-    return new Response(GAME_HTML, {
-      headers: { 'Content-Type': 'text/html;charset=UTF-8' }
+    return new Response(HTML, {
+      headers: { 'Content-Type': 'text/html; charset=UTF-8' }
     });
   }
 };
 
-// ── Durable Object: one instance per room code ──────────────
-export class Room {
-  constructor(state) {
-    this.state = state;
-    this.sessions = new Set();
-  }
-
-  async fetch(request) {
-    if (request.headers.get('Upgrade') !== 'websocket') {
-      return new Response('Expected WebSocket', { status: 426 });
-    }
-
-    const [client, server] = Object.values(new WebSocketPair());
-    server.accept();
-
-    this.sessions.add(server);
-
-    server.addEventListener('message', (e) => {
-      // Broadcast to all OTHER clients in this room
-      for (const s of this.sessions) {
-        if (s !== server && s.readyState === WebSocket.OPEN) {
-          s.send(e.data);
-        }
-      }
-    });
-
-    server.addEventListener('close', () => {
-      this.sessions.delete(server);
-    });
-
-    server.addEventListener('error', () => {
-      this.sessions.delete(server);
-    });
-
-    return new Response(null, { status: 101, webSocket: client });
-  }
-}
-
-// ── Game HTML (inlined) ─────────────────────────────────────
-const GAME_HTML = `<!DOCTYPE html>
+const HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -605,55 +554,45 @@ const Audio3D = (() => {
 })();
 
 // ════════════════════════════════════════════════════════════
-//  MULTIPLAYER  (WebSocket — real online cross-device play)
-//  Connects to /ws?room=ROOMCODE on this same Cloudflare Worker
+//  MULTIPLAYER  (BroadcastChannel — same-browser tabs)
 // ════════════════════════════════════════════════════════════
-let ws = null;
-let wsReady = false;
-let wsQueue = [];
-let myRole = null;
+let _ws=null,_wsRoom='',_wsQ=[];
+let myRole = null; // 'cat' | 'dog'
 let roomCode = '';
 let isHost = false;
 let peerConnected = false;
 let peerName = 'Opponent';
-let wsPingInterval = null;
 
 function setupChannel(code) {
-  roomCode = code;
-  if (ws) { try { ws.close(); } catch(e){} }
-  wsReady = false; wsQueue = [];
-  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  ws = new WebSocket(proto + '//' + location.host + '/ws?room=' + encodeURIComponent(code));
-  ws.onopen = () => {
-    wsReady = true;
-    wsQueue.forEach(m => ws.send(m));
-    wsQueue = [];
+  _wsRoom = code;
+  if (_ws) { _ws.onclose=null; try{_ws.close();}catch(e){} }
+  _wsQ = [];
+  _ws = new WebSocket('wss://socketsbay.com/wss/v2/1/demo/' + encodeURIComponent(code) + '/');
+  _ws.onopen = ()=>{ _wsQ.forEach(m=>_ws.send(m)); _wsQ=[]; };
+  _ws.onmessage = (e)=>{
+    try {
+      const m=JSON.parse(e.data);
+      if(m && m._f!==myRole) handleMsg({data:m});
+    } catch(ex){}
   };
-  ws.onmessage = (e) => {
-    let m; try { m = JSON.parse(e.data); } catch { return; }
-    if (!m || m.from === myRole) return;
-    handleMsg(m);
-  };
-  ws.onerror = () => updateConnBadgeStatus('error');
-  ws.onclose = () => {
-    wsReady = false;
-    if (roomCode && !gameRunning) setTimeout(() => setupChannel(roomCode), 2000);
-  };
+  _ws.onclose = ()=>{ if(!gameRunning) setTimeout(()=>setupChannel(_wsRoom),2000); };
 }
 
 function send(type, data={}) {
-  if (myRole === null) return;
-  const msg = JSON.stringify({ type, from: myRole, ...data });
-  if (ws && ws.readyState === WebSocket.OPEN) ws.send(msg);
-  else wsQueue.push(msg);
+  if(myRole===null) return;
+  const msg=JSON.stringify({type,role:myRole,_f:myRole,...(data||{})});
+  if(_ws && _ws.readyState===WebSocket.OPEN) _ws.send(msg);
+  else _wsQ.push(msg);
 }
 
-function handleMsg(m) {
+function handleMsg(e) {
+  const m = e.data;
   if (!m) return;
   switch(m.type) {
     case 'hello':
       if (!peerConnected) {
-        peerConnected = true; peerName = m.name || 'Opponent';
+        peerConnected = true;
+        peerName = m.name || 'Opponent';
         updateConnBadge(true);
         send('hello_ack', { name: myName });
         if (isHost && !gameRunning) startGame();
@@ -661,7 +600,8 @@ function handleMsg(m) {
       break;
     case 'hello_ack':
       if (!peerConnected) {
-        peerConnected = true; peerName = m.name || 'Opponent';
+        peerConnected = true;
+        peerName = m.name || 'Opponent';
         updateConnBadge(true);
         if (!gameRunning) startGame();
       }
@@ -678,15 +618,12 @@ function handleMsg(m) {
     case 'game_over':
       if (!resultShown) showResult(m.winner);
       break;
-    case 'ping': send('pong'); break;
+    case 'ping':
+      send('pong');
+      break;
   }
 }
 
-function updateConnBadgeStatus(s) {
-  const dot = document.getElementById('connDot');
-  const txt = document.getElementById('connText');
-  if (s === 'error') { dot.className='red'; txt.textContent='Connection error — retrying…'; }
-}
 function updateConnBadge(connected) {
   const badge = document.getElementById('connBadge');
   const dot = document.getElementById('connDot');
@@ -1602,12 +1539,13 @@ document.getElementById('createRoomBtn').addEventListener('click',()=>{
   if (!code||code.length<3) { document.getElementById('lobbyStatus').textContent='Enter a valid room code!'; return; }
   myName=name; myRole=pendingRole||'cat'; roomCode=code; isHost=true;
   setupChannel(code);
+  send('hello',{name:myName});
   document.getElementById('lobbyStatus').innerHTML='<span class="pulse">⏳ Waiting for opponent… Share code: <b>'+code+'</b></span>';
   document.getElementById('createRoomBtn').disabled=true;
   document.getElementById('joinRoomBtn').disabled=true;
   // Ping repeatedly
   const ping=setInterval(()=>{
-    if (peerConnected) { clearInterval(ping); return; }
+    if (peerConnected||!gameRunning===false) { clearInterval(ping); return; }
     send('hello',{name:myName});
   },1500);
 });
@@ -1618,6 +1556,7 @@ document.getElementById('joinRoomBtn').addEventListener('click',()=>{
   if (!code||code.length<3) { document.getElementById('lobbyStatus').textContent='Enter a valid room code!'; return; }
   myName=name; myRole=pendingRole||'dog'; roomCode=code; isHost=false;
   setupChannel(code);
+  send('hello',{name:myName});
   document.getElementById('lobbyStatus').innerHTML='<span class="pulse">🔗 Connecting to room <b>'+code+'</b>…</span>';
   document.getElementById('createRoomBtn').disabled=true;
   document.getElementById('joinRoomBtn').disabled=true;
@@ -1632,7 +1571,7 @@ document.getElementById('joinRoomBtn').addEventListener('click',()=>{
 //  SOLO MODE (single device fallback)
 //  If both players are on the same device, this still works —
 //  one player uses mouse (cats), other uses keyboard (dogs).
-//  No network needed — both players on one screen.
+//  The BroadcastChannel just doesn't fire cross-tab here.
 // ════════════════════════════════════════════════════════════
 
 // Allow solo start: if after 5s no peer, let host start anyway
