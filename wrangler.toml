@@ -5,6 +5,7 @@ compatibility_date = "2024-11-01"
 # Binding for the static-site assets
 [site]
 bucket = "./public"
+run_worker_first = true   # <-- ADD THIS LINE
 
 # Bindings for both Durable Object classes
 [[durable_objects.bindings]]
