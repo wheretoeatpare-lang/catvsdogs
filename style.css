@@ -1,0 +1,340 @@
+:root {
+  --board-rows: 4;
+  --board-cols: 3;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* Puzzle Party body */
+body.puzzle {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: #eee;
+}
+
+/* Escape Room body */
+body.escape {
+  background: #0a0a14;
+  background-image: radial-gradient(circle at 20% 30%, #1c1c2e 0%, #0a0a14 80%);
+  color: #ddd;
+}
+
+.screen {
+  text-align: center;
+}
+
+.hidden {
+  display: none;
+}
+
+button {
+  padding: 10px 20px;
+  margin: 5px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+button:hover {
+  transform: scale(1.05);
+}
+
+input {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #555;
+  background: rgba(255,255,255,0.05);
+  color: white;
+  font-size: 1rem;
+  outline: none;
+  transition: border 0.2s;
+}
+
+input:focus {
+  border-color: #e94560;
+}
+
+.lobby-actions {
+  margin: 20px 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.join-row {
+  display: flex;
+  gap: 10px;
+}
+
+/* ==== PUZZLE PARTY ==== */
+#board {
+  display: grid;
+  grid-template-columns: repeat(var(--board-cols), 1fr);
+  gap: 2px;
+  background: #0f3460;
+  padding: 2px;
+  border-radius: 10px;
+  margin: 20px auto;
+  max-width: 400px;
+}
+
+.cell {
+  aspect-ratio: 1;
+  background: #1a1a2e;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.cell:hover {
+  border-color: #e94560;
+}
+
+.cell.filled {
+  border-color: #00ff88;
+  background-size: cover;
+}
+
+.cell.filled .piece-emoji {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 1rem;
+  opacity: 0.9;
+  text-shadow: 0 0 3px black;
+}
+
+/* Pool pieces – jigsaw shape */
+.piece {
+  width: 70px;
+  height: 70px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: white;
+  cursor: grab;
+  user-select: none;
+  border: 2px solid transparent;
+  transition: transform 0.1s;
+  position: relative;
+  /* jigsaw tab on top */
+  --tab-size: 10px;
+  clip-path: polygon(
+    0 var(--tab-size),
+    var(--tab-size) 0,
+    calc(50% - var(--tab-size)/2) 0,
+    50% calc(-1 * var(--tab-size)),
+    calc(50% + var(--tab-size)/2) 0,
+    calc(100% - var(--tab-size)) 0,
+    100% var(--tab-size),
+    100% calc(100% - var(--tab-size)),
+    calc(100% - var(--tab-size)) 100%,
+    calc(50% + var(--tab-size)/2) 100%,
+    50% calc(100% + var(--tab-size)),
+    calc(50% - var(--tab-size)/2) 100%,
+    var(--tab-size) 100%,
+    0 calc(100% - var(--tab-size))
+  );
+}
+
+.piece:hover {
+  transform: scale(1.1);
+}
+
+.piece:active {
+  cursor: grabbing;
+}
+
+.piece.selected {
+  border-color: #e94560;
+  box-shadow: 0 0 15px #e94560;
+  transform: scale(1.1);
+}
+
+#piecesContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  padding: 10px;
+}
+
+#selectedIndicator {
+  margin-top: 10px;
+  font-style: italic;
+  color: #aaa;
+}
+
+/* Confetti */
+#confettiContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 999;
+}
+
+/* ==== ESCAPE ROOM ==== */
+.timer-bar {
+  background: #16213e;
+  height: 8px;
+  border-radius: 4px;
+  margin: 15px 0;
+  overflow: hidden;
+}
+
+.timer-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #e94560, #ff6b6b);
+  transition: width 1s linear;
+}
+
+#puzzleBox {
+  background: rgba(0,0,0,0.3);
+  padding: 25px;
+  border-radius: 12px;
+  margin: 20px 0;
+  text-align: left;
+  border: 1px solid #333;
+  box-shadow: 0 0 20px rgba(233,69,96,0.1);
+}
+
+#puzzleQuestion {
+  font-size: 1.3rem;
+  margin-bottom: 20px;
+  line-height: 1.6;
+  font-family: 'Courier New', monospace;
+  color: #e0e0e0;
+}
+
+#answerInput {
+  width: 100%;
+  margin: 10px 0;
+  padding: 14px;
+  font-size: 1.1rem;
+  background: #0a0a14;
+  border-color: #444;
+}
+
+#submitAnswer {
+  width: 100%;
+  padding: 14px;
+  font-size: 1.1rem;
+  background: #e94560;
+  color: white;
+  font-weight: bold;
+}
+
+#submitAnswer:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.wrongShake {
+  animation: shake 0.3s;
+}
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+#winBanner {
+  text-align: center;
+  font-size: 2.2rem;
+  font-weight: bold;
+  color: gold;
+  animation: pulse 1s infinite;
+  margin: 20px 0;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); text-shadow: 0 0 10px gold; }
+  50% { transform: scale(1.05); text-shadow: 0 0 25px gold; }
+  100% { transform: scale(1); text-shadow: 0 0 10px gold; }
+}
+
+.progress-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #0f3460;
+  padding: 10px 15px;
+  margin: 6px 0;
+  border-radius: 8px;
+}
+
+.progress-name {
+  flex: 1;
+  text-align: left;
+  font-weight: bold;
+}
+
+.progress-bar {
+  width: 120px;
+  height: 10px;
+  background: #1a1a2e;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #00ff88;
+  transition: width 0.3s;
+}
+
+.player-avatar {
+  font-size: 1.8rem;
+  margin-right: 5px;
+}
+
+/* Top bar */
+#topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.room-code {
+  font-weight: bold;
+  color: #e94560;
+  font-size: 1.2rem;
+}
+
+.players-list {
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+/* ========== PREVIEW ONLY ========== */
+button.toggle-btn {
+  background: #0f3460;
+  color: white;
+  margin-top: 20px;
+}

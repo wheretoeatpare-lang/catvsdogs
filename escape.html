@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Escape Room Race</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="escape">
+  <div id="app" style="max-width:500px; width:100%; padding:20px;">
+    <div id="lobby" class="screen">
+      <h1>🔐 Escape Room Race</h1>
+      <p style="color:#aaa;">Solve the puzzles before the timer runs out!</p>
+      <div class="lobby-actions">
+        <button id="createBtn" style="background:#e94560;">Create Room</button>
+        <div class="join-row">
+          <input id="roomInput" type="text" placeholder="Room code" maxlength="6" />
+          <button id="joinBtn">Join</button>
+        </div>
+      </div>
+      <input id="nameInput" type="text" placeholder="Your name" value="Detective" />
+    </div>
+    <div id="game" class="screen hidden">
+      <div id="topBar">
+        <span class="room-code" id="roomCodeDisplay"></span>
+        <span style="color:#e94560; font-weight:bold;" id="timerDisplay">05:00</span>
+      </div>
+      <div class="timer-bar">
+        <div class="timer-bar-fill" id="timerFill" style="width:100%;"></div>
+      </div>
+      <div id="puzzleBox">
+        <div id="puzzleQuestion"></div>
+        <input id="answerInput" type="text" placeholder="Your answer..." autocomplete="off" />
+        <button id="submitAnswer">Submit</button>
+        <div id="messageArea" style="margin-top:10px; min-height:1.5em;"></div>
+      </div>
+      <div id="winBanner" class="hidden"></div>
+      <h3 style="margin-top:20px;">📊 Leaderboard</h3>
+      <div id="progressList"></div>
+    </div>
+  </div>
+  <script src="/escape.js"></script>
+</body>
+</html>
