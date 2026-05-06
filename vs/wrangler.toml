@@ -1,0 +1,43 @@
+# ═══════════════════════════════════════════════════════════
+#  wrangler.toml — Cloudflare Workers deployment config
+#  Cat & Dog Co-op Escape
+# ═══════════════════════════════════════════════════════════
+#
+#  Setup steps:
+#    1. npm install -g wrangler
+#    2. wrangler login
+#    3. wrangler deploy        (from /worker directory)
+#    4. Update WS_URL in client.js with your worker URL
+#    5. Push /public to Cloudflare Pages via GitHub
+
+name = "cat-dog-escape"
+main = "worker/worker.js"
+
+# Use the latest Workers compatibility date
+compatibility_date = "2024-01-01"
+
+# Durable Objects binding
+# The class name must match the export in room.js
+[[durable_objects.bindings]]
+name       = "GAME_ROOM"      # env.GAME_ROOM in worker code
+class_name = "GameRoom"       # exported class in room.js
+
+# Durable Objects migrations
+# Required first time you deploy a new DO class
+[[migrations]]
+tag              = "v1"
+new_classes      = ["GameRoom"]
+
+# Workers Routes (optional: custom domain)
+# [[routes]]
+# pattern = "game.yourdomain.com/*"
+# zone_name = "yourdomain.com"
+
+# Environment variables (none needed for base game)
+# [vars]
+# SOME_SECRET = "..."
+
+# Dev server config
+[dev]
+port = 8787
+local_protocol = "http"

@@ -1,0 +1,341 @@
+/* ═══════════════════════════════════════════
+   Cat & Dog Co-op Escape — Styles
+   Aesthetic: Playful retro-pixel with warmth
+═══════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@400;600;800&display=swap');
+
+:root {
+  --cat-color: #ff6b9d;
+  --dog-color: #4ecdc4;
+  --bg-dark: #1a1a2e;
+  --bg-mid: #16213e;
+  --bg-card: #0f3460;
+  --accent: #e94560;
+  --gold: #ffd700;
+  --text: #f0f0f0;
+  --text-dim: #a0a0c0;
+  --radius: 12px;
+  --shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--bg-dark);
+  color: var(--text);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+.hidden { display: none !important; }
+
+/* ── LOBBY ── */
+#lobby {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+
+.lobby-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(78,205,196,0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 50%, rgba(255,107,157,0.15) 0%, transparent 60%),
+    linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  animation: bgPulse 8s ease-in-out infinite;
+}
+
+@keyframes bgPulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+.lobby-card {
+  position: relative;
+  background: rgba(15, 52, 96, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 40px 48px;
+  max-width: 640px;
+  width: 90%;
+  box-shadow: var(--shadow), 0 0 60px rgba(78,205,196,0.1);
+  text-align: center;
+  animation: cardIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.lobby-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+.lobby-card h1 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.4rem;
+  line-height: 1.6;
+  color: var(--text);
+  margin-bottom: 8px;
+  text-shadow: 0 0 20px rgba(78,205,196,0.5);
+}
+
+.lobby-card h1 span {
+  color: var(--gold);
+  text-shadow: 0 0 20px rgba(255,215,0,0.5);
+}
+
+.subtitle {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  margin-bottom: 28px;
+}
+
+/* Role cards */
+.role-cards {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.role-card {
+  flex: 1;
+  background: rgba(255,255,255,0.05);
+  border-radius: var(--radius);
+  padding: 16px;
+  border: 2px solid transparent;
+  text-align: left;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.role-card:hover { transform: translateY(-2px); }
+.role-card.cat  { border-color: rgba(255,107,157,0.4); }
+.role-card.dog  { border-color: rgba(78,205,196,0.4); }
+
+.role-emoji { font-size: 1.8rem; margin-bottom: 8px; }
+
+.role-card strong {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+  letter-spacing: 0.02em;
+}
+.role-card.cat strong { color: var(--cat-color); }
+.role-card.dog strong { color: var(--dog-color); }
+
+.role-card ul {
+  list-style: none;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 2;
+}
+
+/* Controls hint */
+.controls-hint {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+kbd {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  color: var(--gold);
+  margin-right: 4px;
+}
+
+/* Input row */
+.input-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+#roomInput {
+  flex: 1;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  color: var(--text);
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+#roomInput:focus {
+  border-color: var(--dog-color);
+  box-shadow: 0 0 0 3px rgba(78,205,196,0.2);
+}
+#roomInput::placeholder { color: var(--text-dim); }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--dog-color), #38b2ac);
+  color: #1a1a2e;
+  border: none;
+  border-radius: var(--radius);
+  padding: 12px 24px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(78,205,196,0.4);
+}
+.btn-primary:active { transform: translateY(0); }
+
+.lobby-status {
+  font-size: 0.85rem;
+  min-height: 24px;
+  color: var(--gold);
+  font-weight: 600;
+}
+.lobby-status.error { color: var(--accent); }
+
+/* ── HUD ── */
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  font-family: 'Press Start 2P', monospace;
+}
+
+#hudRole {
+  position: absolute;
+  top: 16px; left: 16px;
+  font-size: 0.6rem;
+  padding: 8px 14px;
+  background: rgba(0,0,0,0.6);
+  border-radius: 8px;
+  border-left: 3px solid var(--cat-color);
+  letter-spacing: 0.05em;
+}
+#hudRole.dog-role { border-left-color: var(--dog-color); }
+
+#hudRoom {
+  position: absolute;
+  top: 16px; right: 16px;
+  font-size: 0.5rem;
+  color: var(--text-dim);
+  background: rgba(0,0,0,0.5);
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+#hudStatus {
+  position: absolute;
+  top: 60px; left: 16px;
+  font-size: 0.5rem;
+  color: var(--gold);
+  background: rgba(0,0,0,0.5);
+  padding: 5px 10px;
+  border-radius: 6px;
+  min-height: 20px;
+}
+
+#hudHelp {
+  position: absolute;
+  bottom: 16px; left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 0.45rem;
+  color: var(--text-dim);
+  background: rgba(0,0,0,0.5);
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+#puzzleHint {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -200%);
+  font-size: 0.55rem;
+  color: var(--gold);
+  background: rgba(0,0,0,0.75);
+  padding: 10px 20px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid rgba(255,215,0,0.3);
+  max-width: 320px;
+  line-height: 1.8;
+  transition: opacity 0.3s;
+}
+#puzzleHint:empty { display: none; }
+
+/* ── CANVAS ── */
+#gameCanvas {
+  position: fixed; inset: 0;
+  width: 100vw; height: 100vh;
+  display: block;
+}
+
+/* ── POINTER LOCK OVERLAY ── */
+#clickOverlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  cursor: pointer;
+}
+
+.click-msg {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.8rem;
+  color: var(--gold);
+  background: rgba(0,0,0,0.8);
+  padding: 20px 32px;
+  border-radius: 12px;
+  border: 2px solid rgba(255,215,0,0.4);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(255,215,0,0.3); }
+  50%      { box-shadow: 0 0 0 12px rgba(255,215,0,0); }
+}
+
+/* ── CROSSHAIR ── */
+#hud::after {
+  content: '+';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.2rem;
+  color: rgba(255,255,255,0.6);
+  font-family: monospace;
+  pointer-events: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-dark); }
+::-webkit-scrollbar-thumb { background: var(--bg-card); border-radius: 3px; }

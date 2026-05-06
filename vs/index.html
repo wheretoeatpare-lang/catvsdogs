@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🐱🐶 Cat & Dog Co-op Escape</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ── LOBBY SCREEN ── -->
+  <div id="lobby">
+    <div class="lobby-bg"></div>
+    <div class="lobby-card">
+      <div class="lobby-icon">🐱🐶</div>
+      <h1>Cat &amp; Dog<br/><span>Co-op Escape</span></h1>
+      <p class="subtitle">A 2-player cooperative puzzle adventure</p>
+
+      <div class="role-cards">
+        <div class="role-card cat">
+          <div class="role-emoji">🐱</div>
+          <strong>Player 1 — Cat</strong>
+          <ul>
+            <li>⚡ High jump</li>
+            <li>🧱 Wall climb</li>
+            <li>🔘 Activate switches</li>
+          </ul>
+        </div>
+        <div class="role-card dog">
+          <div class="role-emoji">🐶</div>
+          <strong>Player 2 — Dog</strong>
+          <ul>
+            <li>💪 Push heavy boxes</li>
+            <li>🔨 Break barriers</li>
+            <li>🛡 Strong body</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="controls-hint">
+        <span><kbd>W A S D</kbd> Move</span>
+        <span><kbd>Mouse</kbd> Camera</span>
+        <span><kbd>Space</kbd> Jump</span>
+        <span><kbd>E</kbd> Interact</span>
+      </div>
+
+      <div class="input-row">
+        <input id="roomInput" type="text" placeholder="Room ID (e.g. room42)" maxlength="20" />
+        <button id="joinBtn" class="btn-primary">Join Room</button>
+      </div>
+      <div id="lobbyStatus" class="lobby-status"></div>
+    </div>
+  </div>
+
+  <!-- ── HUD (shown in-game) ── -->
+  <div id="hud" class="hidden">
+    <div id="hudRole"></div>
+    <div id="hudRoom"></div>
+    <div id="hudStatus"></div>
+    <div id="hudHelp">
+      <span><kbd>WASD</kbd> Move</span>
+      <span><kbd>Mouse</kbd> Camera</span>
+      <span><kbd>Space</kbd> Jump</span>
+      <span><kbd>E</kbd> Interact</span>
+      <span><kbd>Click</kbd> Lock mouse</span>
+    </div>
+    <div id="puzzleHint"></div>
+  </div>
+
+  <!-- ── GAME CANVAS ── -->
+  <canvas id="gameCanvas" class="hidden"></canvas>
+
+  <!-- ── POINTER LOCK OVERLAY ── -->
+  <div id="clickOverlay" class="hidden">
+    <div class="click-msg">🖱 Click to capture mouse &amp; play</div>
+  </div>
+
+  <!-- Three.js from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>
