@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌿 PLANT WARS — COUPLE BATTLE GAME 🧟</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a0a2e;font-family:'Courier New',monospace;overflow:hidden;color:#fff}
+#app{width:100vw;height:100vh;display:flex;flex-direction:column}
+canvas{display:block}
+
+/* LOBBY */
+#lobby{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 0%,#1b3a2d 0%,#0d1b2a 60%,#0a0a18 100%);
+  z-index:100;
+}
+#lobby::before{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='30' cy='30' r='1' fill='rgba(255,255,255,0.08)'/%3E%3C/svg%3E") repeat;
+  pointer-events:none;
+}
+#lobby h1{
+  font-size:3.2rem;font-weight:900;letter-spacing:6px;
+  color:#ffd700;
+  text-shadow:0 0 40px #ff8c00,0 0 80px #ff450040,0 4px 12px #000;
+  margin-bottom:0.25rem;text-align:center;
+  animation:titlePulse 2s ease-in-out infinite;
+}
+@keyframes titlePulse{0%,100%{text-shadow:0 0 40px #ff8c00,0 4px 12px #000}50%{text-shadow:0 0 60px #ffd700,0 0 100px #ff8c0060,0 4px 12px #000}}
+#lobby .sub{
+  font-size:0.9rem;color:#90caf9;margin-bottom:2.5rem;
+  letter-spacing:3px;text-align:center;opacity:0.85;
+}
+.stars{
+  position:absolute;top:0;left:0;width:100%;height:40%;
+  pointer-events:none;overflow:hidden;
+}
+.star{
+  position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;
+  animation:twinkle var(--d,2s) ease-in-out infinite;
+  opacity:var(--o,0.6);
+}
+@keyframes twinkle{0%,100%{opacity:var(--o,0.6)}50%{opacity:0.1}}
+
+/* ROLE PICKER */
+.role-pick{display:flex;gap:1.5rem;margin-bottom:2rem}
+.role-btn{
+  padding:1.2rem 1.8rem;border:2px solid;border-radius:16px;
+  cursor:pointer;font-family:'Courier New',monospace;
+  font-size:0.95rem;font-weight:700;letter-spacing:1px;
+  transition:all 0.2s;display:flex;flex-direction:column;
+  align-items:center;gap:0.4rem;min-width:150px;
+  background:transparent;
+}
+.role-btn.plants{border-color:#4caf50;color:#4caf50;background:#0a2010}
+.role-btn.plants:hover,.role-btn.plants.active{background:#4caf50;color:#fff;box-shadow:0 0 24px #4caf5080,0 4px 16px #000}
+.role-btn.zombies{border-color:#ff5722;color:#ff5722;background:#200a00}
+.role-btn.zombies:hover,.role-btn.zombies.active{background:#ff5722;color:#fff;box-shadow:0 0 24px #ff572280,0 4px 16px #000}
+.role-btn .emoji{font-size:2.8rem;line-height:1}
+.role-btn .role-name{font-size:1rem;font-weight:900}
+.role-btn .role-desc{font-size:0.65rem;opacity:0.7}
+
+/* LOBBY BUTTONS */
+.lobby-btns{display:flex;flex-direction:column;gap:0.8rem;align-items:center;width:320px}
+.btn{
+  padding:0.85rem 2rem;border:2px solid #ffd700;border-radius:12px;
+  background:transparent;color:#ffd700;font-family:'Courier New',monospace;
+  font-size:0.95rem;font-weight:700;cursor:pointer;letter-spacing:2px;
+  width:100%;transition:all 0.2s;
+}
+.btn:hover{background:#ffd700;color:#000;box-shadow:0 0 20px #ffd70060}
+.btn:active{transform:scale(0.97)}
+.btn.green{border-color:#4caf50;color:#4caf50}
+.btn.green:hover{background:#4caf50;color:#fff;box-shadow:0 0 20px #4caf5060}
+.btn.red{border-color:#ff5722;color:#ff5722}
+.btn.red:hover{background:#ff5722;color:#fff}
+.btn.back{border-color:#444;color:#888;font-size:0.8rem;padding:0.6rem}
+.btn.back:hover{background:#333;color:#fff;box-shadow:none}
+.input-row{display:flex;gap:0.5rem;width:100%}
+input[type=text]{
+  flex:1;padding:0.8rem;border:2px solid #ffd700;border-radius:10px;
+  background:#0a0a1a;color:#ffd700;font-family:'Courier New',monospace;
+  font-size:1.1rem;text-align:center;letter-spacing:4px;
+  outline:none;transition:box-shadow 0.2s;
+}
+input[type=text]:focus{box-shadow:0 0 16px #ffd70060}
+input[type=text]::placeholder{color:#444;letter-spacing:2px}
+.room-code-display{
+  background:#050510;border:2px solid #ffd700;border-radius:14px;
+  padding:1rem 1.5rem;text-align:center;width:100%;
+  box-shadow:0 0 30px #ffd70030;
+}
+.room-code-display .code-label{font-size:0.7rem;color:#888;margin-bottom:6px;letter-spacing:2px}
+.room-code-display .code{font-size:2.4rem;font-weight:900;color:#ffd700;letter-spacing:8px}
+.room-code-display .hint{font-size:0.7rem;color:#90caf9;margin-top:6px;letter-spacing:1px}
+.separator{color:#444;font-size:0.78rem;margin:0.2rem 0;letter-spacing:1px;text-align:center}
+.status-msg{font-size:0.82rem;color:#90caf9;text-align:center;min-height:20px;letter-spacing:1px}
+.status-msg.error{color:#ff5722}
+.status-msg.success{color:#4caf50}
+
+/* GAME WRAPPER */
+#gameWrapper{position:absolute;inset:0;display:none}
+
+/* HUD */
+#hud{
+  position:absolute;top:0;left:0;right:0;height:58px;
+  background:rgba(0,0,0,0.82);backdrop-filter:blur(8px);
+  display:flex;align-items:center;padding:0 1rem;gap:1rem;
+  z-index:10;border-bottom:1px solid rgba(255,215,0,0.2);
+}
+#sunCounter{
+  display:flex;align-items:center;gap:6px;
+  font-size:1.15rem;font-weight:900;color:#ffd700;
+  text-shadow:0 0 10px #ffd70080;
+}
+#sunCounter .sun-icon{font-size:1.4rem;animation:spinSun 4s linear infinite}
+@keyframes spinSun{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+#waveInfo{color:#90caf9;font-size:0.82rem;letter-spacing:1px}
+#roleTag{
+  padding:4px 14px;border-radius:8px;font-size:0.78rem;
+  font-weight:900;letter-spacing:1px;
+}
+#roleTag.plants{background:#0a2010;color:#4caf50;border:1px solid #4caf50}
+#roleTag.zombies{background:#200500;color:#ff5722;border:1px solid #ff5722}
+#partnerStatus{
+  font-size:0.75rem;color:#aaa;background:#111;
+  padding:4px 10px;border-radius:8px;border:1px solid #333;
+  margin-left:auto;
+}
+#scoreDisplay{font-size:0.82rem;color:#ffd700;letter-spacing:1px}
+
+/* PLANT SELECTION BAR */
+#plantBar{
+  position:absolute;top:58px;left:0;right:0;height:74px;
+  background:rgba(0,15,0,0.9);backdrop-filter:blur(8px);
+  display:none;align-items:center;gap:8px;padding:0 14px;
+  z-index:10;border-bottom:1px solid #2d4a2d;
+}
+.plant-card{
+  width:60px;height:60px;border-radius:10px;border:2px solid #2d4a2d;
+  cursor:pointer;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;font-size:0.55rem;color:#aaa;
+  transition:all 0.15s;position:relative;background:#061206;
+}
+.plant-card:hover{border-color:#4caf50;background:#0f2a0f;transform:scale(1.08)}
+.plant-card.selected{border-color:#ffd700;background:#1a1200;box-shadow:0 0 14px #ffd70060}
+.plant-card.cant-afford{opacity:0.35;cursor:not-allowed;transform:none}
+.plant-card .p-emoji{font-size:1.8rem;line-height:1}
+.plant-card .p-name{font-size:0.5rem;color:#888;margin-top:1px}
+.plant-card .p-cost{font-size:0.58rem;color:#ffd700;font-weight:700}
+.plant-card .cooldown-bar{
+  position:absolute;bottom:0;left:0;height:3px;
+  background:#ffd700;border-radius:0 0 8px 8px;
+  width:100%;transition:width 0.1s;
+}
+.bar-hint{margin-left:auto;font-size:0.7rem;color:#555;text-align:right;line-height:1.7}
+
+/* ZOMBIE CONTROL BAR */
+#zombieBar{
+  position:absolute;top:58px;left:0;right:0;height:74px;
+  background:rgba(20,0,0,0.9);backdrop-filter:blur(8px);
+  display:none;align-items:center;gap:8px;padding:0 14px;
+  z-index:10;border-bottom:1px solid #4a1a00;
+}
+.zombie-card{
+  padding:8px 14px;border-radius:10px;border:2px solid #4a1a00;
+  cursor:pointer;display:flex;flex-direction:column;align-items:center;
+  gap:2px;background:#100000;transition:all 0.15s;min-width:70px;
+}
+.zombie-card:hover,.zombie-card.selected{border-color:#ff5722;background:#200500;box-shadow:0 0 14px #ff572260}
+.zombie-card .z-emoji{font-size:1.6rem}
+.zombie-card .z-name{font-size:0.5rem;color:#ff9966;font-weight:700}
+.zombie-card .z-hp{font-size:0.5rem;color:#888}
+#brainCounter{
+  display:flex;align-items:center;gap:6px;
+  font-size:1.1rem;font-weight:900;color:#ff5722;margin-left:1rem;
+}
+#cooldownMsg{font-size:0.72rem;color:#888;margin-left:auto;text-align:right;line-height:1.6}
+
+/* GAME CANVAS */
+#gameCanvas{position:absolute;top:0;left:0;z-index:1}
+
+/* OVERLAY */
+#overlay{
+  position:absolute;inset:0;background:rgba(0,0,0,0.82);
+  display:none;align-items:center;justify-content:center;
+  z-index:200;flex-direction:column;gap:1.2rem;
+  backdrop-filter:blur(6px);
+}
+#overlay h2{font-size:3rem;font-weight:900;letter-spacing:4px;text-shadow:0 0 30px currentColor}
+#overlay .overlay-score{color:#ffd700;font-size:1.1rem;letter-spacing:2px}
+#overlay p{color:#aaa;font-size:0.9rem;max-width:340px;text-align:center;line-height:1.6}
+#overlay .btn{width:220px}
+
+/* TOAST */
+.toast{
+  position:fixed;top:90px;left:50%;transform:translateX(-50%);
+  background:#111;border:1px solid #ffd700;color:#ffd700;
+  padding:8px 18px;border-radius:10px;font-size:0.82rem;
+  z-index:300;opacity:0;transition:opacity 0.3s;
+  pointer-events:none;white-space:nowrap;letter-spacing:1px;
+  box-shadow:0 4px 20px #00000080;
+}
+
+/* MINI-MAP */
+#minimap{
+  position:absolute;bottom:12px;right:12px;
+  width:180px;height:90px;background:rgba(0,0,0,0.7);
+  border:1px solid #333;border-radius:8px;z-index:10;
+  display:none;
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ============ LOBBY ============ -->
+<div id="lobby">
+  <div class="stars" id="starsContainer"></div>
+  <h1>🌿 PLANT WARS 🧟</h1>
+  <div class="sub">UGG COUPLE BATTLE — 3D CAVE GAME!</div>
+
+  <!-- MAIN SCREEN -->
+  <div id="screenMain">
+    <div class="role-pick">
+      <button class="role-btn plants" id="btnPlants" onclick="pickRole('plants')">
+        <span class="emoji">🌻</span>
+        <span class="role-name">ME PLANT!</span>
+        <span class="role-desc">DEFEND HOME</span>
+      </button>
+      <button class="role-btn zombies" id="btnZombies" onclick="pickRole('zombies')">
+        <span class="emoji">🧟</span>
+        <span class="role-name">ME ZOMBIE!</span>
+        <span class="role-desc">EAT BRAINS</span>
+      </button>
+    </div>
+    <div class="lobby-btns">
+      <button class="btn green" onclick="showCreate()">🏠 CREATE ROOM — UGG HOST!</button>
+      <div class="separator">— OR PARTNER ALREADY MAKE ROOM —</div>
+      <div class="input-row">
+        <input type="text" id="joinCodeInput" placeholder="ROOM CODE" maxlength="6"
+          oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')joinRoom()">
+        <button class="btn" style="width:auto;padding:0.8rem 1.2rem;flex-shrink:0" onclick="joinRoom()">JOIN!</button>
+      </div>
+      <div class="status-msg" id="statusMsg"></div>
+    </div>
+  </div>
+
+  <!-- CREATE ROOM SCREEN -->
+  <div id="screenCreate" style="display:none;width:340px">
+    <div class="lobby-btns">
+      <div class="room-code-display">
+        <div class="code-label">YOUR ROOM CODE — SHARE WITH PARTNER!</div>
+        <div class="code" id="displayCode">------</div>
+        <div class="hint">👫 TELL PARTNER THIS CODE! THEY PICK OTHER ROLE &amp; JOIN!</div>
+      </div>
+      <div class="status-msg" id="createStatus">WAITING FOR PARTNER... UGG PATIENT... 🦴</div>
+      <button class="btn" onclick="copyCode()">📋 COPY CODE</button>
+      <button class="btn" onclick="startSolo()" style="border-color:#888;color:#888;font-size:0.8rem;padding:0.7rem">
+        🦕 SOLO MODE (NO PARTNER)
+      </button>
+      <button class="btn back" onclick="showMain()">← BACK TO CAVE</button>
+    </div>
+  </div>
+
+</div>
+<!-- END LOBBY -->
+
+<!-- ============ GAME ============ -->
+<div id="gameWrapper">
+  <!-- HUD -->
+  <div id="hud">
+    <div id="sunCounter">
+      <span class="sun-icon">☀️</span>
+      <span id="sunVal">150</span>
+    </div>
+    <div id="waveInfo">WAVE 1</div>
+    <span id="roleTag" class="plants">🌻 PLANT DEFENDER</span>
+    <div id="scoreDisplay">SCORE: 0</div>
+    <div id="partnerStatus">👫 PARTNER: ONLINE</div>
+  </div>
+
+  <!-- PLANT BAR (plants player) -->
+  <div id="plantBar">
+    <div class="plant-card selected" data-plant="sunflower" onclick="selectPlant('sunflower')">
+      <span class="p-emoji">🌻</span>
+      <span class="p-name">SUNFLOWER</span>
+      <span class="p-cost">☀️ 50</span>
+    </div>
+    <div class="plant-card" data-plant="peashooter" onclick="selectPlant('peashooter')">
+      <span class="p-emoji">🫛</span>
+      <span class="p-name">PEASHOOTER</span>
+      <span class="p-cost">☀️ 100</span>
+    </div>
+    <div class="plant-card" data-plant="wallnut" onclick="selectPlant('wallnut')">
+      <span class="p-emoji">🟫</span>
+      <span class="p-name">WALL-NUT</span>
+      <span class="p-cost">☀️ 50</span>
+    </div>
+    <div class="plant-card" data-plant="iceshooter" onclick="selectPlant('iceshooter')">
+      <span class="p-emoji">❄️</span>
+      <span class="p-name">ICE PLANT</span>
+      <span class="p-cost">☀️ 175</span>
+    </div>
+    <div class="plant-card" data-plant="chomper" onclick="selectPlant('chomper')">
+      <span class="p-emoji">🟢</span>
+      <span class="p-name">CHOMPER</span>
+      <span class="p-cost">☀️ 150</span>
+    </div>
+    <div class="plant-card" data-plant="cherry" onclick="selectPlant('cherry')">
+      <span class="p-emoji">🍒</span>
+      <span class="p-name">CHERRY BOMB</span>
+      <span class="p-cost">☀️ 150</span>
+    </div>
+    <div class="bar-hint">CLICK GRID<br>TO PLANT!<br>🌿</div>
+  </div>
+
+  <!-- ZOMBIE BAR (zombies player) -->
+  <div id="zombieBar">
+    <div id="brainCounter">🧠 <span id="brainVal">3</span> ZOMBIE LEFT</div>
+    <div class="zombie-card selected" data-ztype="0" onclick="selectZType(0)">
+      <span class="z-emoji">🧟</span>
+      <span class="z-name">BASIC</span>
+      <span class="z-hp">❤️100</span>
+    </div>
+    <div class="zombie-card" data-ztype="1" onclick="selectZType(1)">
+      <span class="z-emoji">🪖</span>
+      <span class="z-name">CONE HEAD</span>
+      <span class="z-hp">❤️280</span>
+    </div>
+    <div class="zombie-card" data-ztype="2" onclick="selectZType(2)">
+      <span class="z-emoji">🪣</span>
+      <span class="z-name">BUCKET</span>
+      <span class="z-hp">❤️650</span>
+    </div>
+    <div class="zombie-card" data-ztype="3" onclick="selectZType(3)">
+      <span class="z-emoji">👑</span>
+      <span class="z-name">BOSS</span>
+      <span class="z-hp">❤️1200</span>
+    </div>
+    <div id="cooldownMsg">CLICK RIGHT SIDE<br>OF GRID TO SPAWN!<br>🧟</div>
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+  <canvas id="minimap"></canvas>
+</div>
+
+<!-- OVERLAY -->
+<div id="overlay">
+  <h2 id="overlayTitle">GAME OVER!</h2>
+  <div class="overlay-score" id="overlayScore"></div>
+  <p id="overlayMsg">Zombie eat all brains... UGG sad</p>
+  <button class="btn green" onclick="restartGame()">🔄 PLAY AGAIN! UGG!</button>
+  <button class="btn" onclick="backToLobby()">🏠 BACK TO CAVE</button>
+</div>
+
+<div class="toast" id="toast"></div>
+</div><!-- end #app -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================================================
+//  CONSTANTS & CONFIG
+// ============================================================
+const ROWS=5, COLS=9, CELL=1.15;
+const SYNC_KEY='pvz_couple_';
+
+const PLANT_DATA={
+  sunflower: {name:'SUNFLOWER', cost:50,  hp:150, color:0xFFD700, sunRate:7500, type:'support'},
+  peashooter:{name:'PEASHOOTER',cost:100, hp:100, color:0x4CAF50, damage:20, range:8, rate:1500, type:'shooter'},
+  wallnut:   {name:'WALL-NUT',  cost:50,  hp:700, color:0x8D6E63, type:'wall'},
+  iceshooter:{name:'ICE PLANT', cost:175, hp:100, color:0x90CAF9, damage:15, range:8, rate:2000, slow:true, type:'shooter'},
+  chomper:   {name:'CHOMPER',   cost:150, hp:200, color:0x00C853, type:'chomper', digCooldown:8000},
+  cherry:    {name:'CHERRY BOMB',cost:150,hp:9999,color:0xFF5722, type:'bomb', explodeRadius:2.2}
+};
+
+const ZOMBIE_TYPES=[
+  {name:'BASIC',    hp:100,  speed:0.008, damage:50, color:0x8BC34A, headColor:0x9CCC65},
+  {name:'CONE',     hp:280,  speed:0.007, damage:55, color:0xFF9800, headColor:0xFFB300},
+  {name:'BUCKET',   hp:650,  speed:0.005, damage:70, color:0x607D8B, headColor:0x78909C},
+  {name:'BOSS',     hp:1200, speed:0.004, damage:100,color:0x880E4F, headColor:0xAD1457, scale:1.6}
+];
+
+// ============================================================
+//  STATE
+// ============================================================
+let scene,camera,renderer,animFrame;
+let plants=[],zombies=[],projectiles=[],particles=[];
+let plantGrid={};
+let sun=150,wave=1,score=0,killed=0,gameRunning=false;
+let selectedPlant='sunflower',selectedZType=0,myRole='plants';
+let nextSunTime=0,nextZombieSpawn=0,waveKillTarget=8,waveKills=0;
+let zombieCooldownUntil=0;
+let roomCode='',partnerPollTimer=null;
+let chosenRole='plants';
+let soloMode=false;
+let brainCount=0; // zombie player spawns
+
+// ============================================================
+//  STAR BACKGROUND
+// ============================================================
+(function makeStars(){
+  const c=document.getElementById('starsContainer');
+  for(let i=0;i<60;i++){
+    const s=document.createElement('div');
+    s.className='star';
+    s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${1.5+Math.random()*3}s;--o:${0.3+Math.random()*0.7};animation-delay:${Math.random()*3}s`;
+    c.appendChild(s);
+  }
+})();
+
+// ============================================================
+//  TOAST
+// ============================================================
+let toastTimer;
+function showToast(msg,dur=2200){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.opacity='1';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.style.opacity='0',dur);
+}
+
+// ============================================================
+//  LOBBY / ROLE
+// ============================================================
+function pickRole(r){
+  chosenRole=r;
+  document.querySelectorAll('.role-btn').forEach(b=>b.classList.remove('active'));
+  const id='btn'+r.charAt(0).toUpperCase()+r.slice(1);
+  document.getElementById(id).classList.add('active');
+}
+
+function showCreate(){
+  if(!chosenRole){showToast('UGG! PICK ROLE FIRST!');return;}
+  roomCode=Math.random().toString(36).substr(2,6).toUpperCase();
+  document.getElementById('displayCode').textContent=roomCode;
+  document.getElementById('screenMain').style.display='none';
+  document.getElementById('screenCreate').style.display='block';
+  document.getElementById('createStatus').textContent='WAITING FOR PARTNER... UGG PATIENT... 🦴';
+  // Broadcast room existence
+  lsSet(SYNC_KEY+roomCode+'_host',{role:chosenRole,ready:false,ts:Date.now()});
+  // Poll for partner joining
+  let tries=0;
+  partnerPollTimer=setInterval(()=>{
+    tries++;
+    const guest=lsGet(SYNC_KEY+roomCode+'_guest');
+    if(guest&&Date.now()-guest.ts<5000){
+      clearInterval(partnerPollTimer);
+      document.getElementById('createStatus').textContent='✅ PARTNER FOUND! UGG HAPPY! STARTING...';
+      setTimeout(()=>startGame(chosenRole,false),1000);
+    }
+    if(tries>180)clearInterval(partnerPollTimer);
+  },500);
+}
+
+function joinRoom(){
+  const code=document.getElementById('joinCodeInput').value.trim().toUpperCase();
+  if(code.length<4){setStatus('CODE TOO SHORT! UGG!','error');return;}
+  if(!chosenRole){setStatus('PICK ROLE FIRST! UGG!','error');return;}
+  roomCode=code;
+  // Check if host exists
+  const host=lsGet(SYNC_KEY+code+'_host');
+  if(host&&host.role===chosenRole){
+    setStatus('MUST PICK OTHER ROLE FROM PARTNER! UGG!','error');return;
+  }
+  lsSet(SYNC_KEY+code+'_guest',{role:chosenRole,ts:Date.now()});
+  setStatus('🔗 JOINING ROOM... UGG EXCITED!','');
+  setTimeout(()=>startGame(chosenRole,false),800);
+}
+
+function startSolo(){
+  soloMode=true;
+  startGame(chosenRole,true);
+}
+
+function setStatus(msg,type=''){
+  const el=document.getElementById('statusMsg');
+  el.textContent=msg;el.className='status-msg '+(type||'');
+}
+
+function copyCode(){
+  try{navigator.clipboard.writeText(roomCode);}catch(e){}
+  showToast('📋 CODE COPIED! SEND TO PARTNER VIA TEXT!');
+}
+
+function showMain(){
+  if(partnerPollTimer)clearInterval(partnerPollTimer);
+  document.getElementById('screenCreate').style.display='none';
+  document.getElementById('screenMain').style.display='block';
+}
+
+// ============================================================
+//  LS HELPERS
+// ============================================================
+function lsSet(key,data){try{localStorage.setItem(key,JSON.stringify(data));}catch(e){}}
+function lsGet(key){try{const d=localStorage.getItem(key);return d?JSON.parse(d):null;}catch(e){return null;}}
+
+// ============================================================
+//  START GAME
+// ============================================================
+function startGame(role,solo){
+  myRole=role;soloMode=!!solo;
+  document.getElementById('lobby').style.display='none';
+  document.getElementById('gameWrapper').style.display='block';
+
+  // HUD role tag
+  const rt=document.getElementById('roleTag');
+  if(role==='plants'){
+    rt.textContent='🌻 PLANT DEFENDER';rt.className='roleTag plants';
+    document.getElementById('plantBar').style.display='flex';
+    document.getElementById('zombieBar').style.display='none';
+  } else {
+    rt.textContent='🧟 ZOMBIE MASTER';rt.className='roleTag zombies';
+    document.getElementById('zombieBar').style.display='flex';
+    document.getElementById('plantBar').style.display='none';
+  }
+
+  if(solo){
+    document.getElementById('partnerStatus').textContent='🦕 SOLO MODE';
+  } else {
+    document.getElementById('partnerStatus').textContent='👫 PARTNER: ONLINE';
+  }
+
+  // Reset state
+  sun=150;wave=1;score=0;killed=0;waveKills=0;waveKillTarget=8;
+  brainCount=3+wave*2;
+  nextSunTime=Date.now()+9000;
+  nextZombieSpawn=Date.now()+3500;
+  zombieCooldownUntil=0;
+
+  initThree();
+  buildGrid();
+  gameRunning=true;
+  updateHUD();
+
+  if(role==='zombies'){
+    showToast('UGG! YOU ZOMBIE MASTER! CLICK RIGHT SIDE TO SPAWN ZOMBIE!',3000);
+  } else {
+    showToast('UGG! YOU PLANT DEFENDER! CLICK GRID TO PLANT! PROTECT HOME!',3000);
+  }
+
+  lastTime=performance.now();
+  animFrame=requestAnimationFrame(tick);
+}
+
+// ============================================================
+//  THREE.JS INIT
+// ============================================================
+function initThree(){
+  const cvs=document.getElementById('gameCanvas');
+  const W=window.innerWidth,H=window.innerHeight;
+  cvs.width=W;cvs.height=H;
+
+  renderer=new THREE.WebGLRenderer({canvas:cvs,antialias:true});
+  renderer.setSize(W,H);renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.setClearColor(0x87CEEB,1);
+
+  scene=new THREE.Scene();
+  scene.fog=new THREE.FogExp2(0xB0D8F0,0.035);
+
+  camera=new THREE.PerspectiveCamera(58,W/H,0.1,200);
+  camera.position.set(COLS*CELL/2,9.5,13.5);
+  camera.lookAt(COLS*CELL/2,0,ROWS*CELL/2);
+
+  // LIGHTING
+  scene.add(new THREE.AmbientLight(0xfff0d0,0.55));
+  const dirLight=new THREE.DirectionalLight(0xFFE082,1.3);
+  dirLight.position.set(12,22,8);dirLight.castShadow=true;
+  dirLight.shadow.mapSize.width=2048;dirLight.shadow.mapSize.height=2048;
+  dirLight.shadow.camera.near=0.5;dirLight.shadow.camera.far=60;
+  dirLight.shadow.camera.left=-15;dirLight.shadow.camera.right=15;
+  dirLight.shadow.camera.top=12;dirLight.shadow.camera.bottom=-12;
+  scene.add(dirLight);
+  scene.add(new THREE.DirectionalLight(0xB3E5FC,0.35)).position.set(-8,6,-6);
+  scene.add(new THREE.HemisphereLight(0x87CEEB,0x4CAF50,0.25));
+
+  // SKY DOME
+  const skyGeo=new THREE.SphereGeometry(90,16,8);
+  const skyMat=new THREE.MeshBasicMaterial({color:0x87CEEB,side:THREE.BackSide});
+  scene.add(new THREE.Mesh(skyGeo,skyMat));
+
+  // CLOUDS
+  for(let i=0;i<6;i++){
+    const cg=new THREE.Group();
+    for(let j=0;j<4;j++){
+      const cm=new THREE.Mesh(
+        new THREE.SphereGeometry(0.8+Math.random()*0.8,8,6),
+        new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:0.85})
+      );
+      cm.position.set(j*1.2-1.5,Math.random()*0.5,Math.random()*0.5);
+      cg.add(cm);
+    }
+    cg.position.set(Math.random()*COLS*CELL,15+Math.random()*5,-5+Math.random()*3);
+    scene.add(cg);
+  }
+
+  // GROUND
+  const groundGeo=new THREE.PlaneGeometry(COLS*CELL+6,ROWS*CELL+6);
+  const groundMat=new THREE.MeshLambertMaterial({color:0x33691E});
+  const ground=new THREE.Mesh(groundGeo,groundMat);
+  ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;
+  ground.position.set(COLS*CELL/2,0,ROWS*CELL/2);
+  scene.add(ground);
+
+  // LANE DIRT
+  for(let r=0;r<ROWS;r++){
+    const lGeo=new THREE.PlaneGeometry(COLS*CELL+1,CELL*0.88);
+    const lMat=new THREE.MeshLambertMaterial({color:r%2===0?0x6D4C41:0x5D4037});
+    const lane=new THREE.Mesh(lGeo,lMat);
+    lane.rotation.x=-Math.PI/2;
+    lane.position.set(COLS*CELL/2,0.005,r*CELL+CELL/2);
+    lane.receiveShadow=true;
+    scene.add(lane);
+  }
+
+  // GRID LINES
+  for(let r=0;r<=ROWS;r++){
+    const pts=[new THREE.Vector3(0,0.01,r*CELL),new THREE.Vector3(COLS*CELL,0.01,r*CELL)];
+    const lineGeo=new THREE.BufferGeometry().setFromPoints(pts);
+    scene.add(new THREE.Line(lineGeo,new THREE.LineBasicMaterial({color:0x000000,transparent:true,opacity:0.12})));
+  }
+  for(let c=0;c<=COLS;c++){
+    const pts=[new THREE.Vector3(c*CELL,0.01,0),new THREE.Vector3(c*CELL,0.01,ROWS*CELL)];
+    const lineGeo=new THREE.BufferGeometry().setFromPoints(pts);
+    scene.add(new THREE.Line(lineGeo,new THREE.LineBasicMaterial({color:0x000000,transparent:true,opacity:0.12})));
+  }
+
+  // HOUSE (left side)
+  makeHouse3D();
+
+  // SUN OBJECT
+  makeSun3D();
+
+  // DANGER ZONE LINE (right side)
+  const dzPts=[new THREE.Vector3(COLS*CELL-0.5*CELL,0.05,0),new THREE.Vector3(COLS*CELL-0.5*CELL,0.05,ROWS*CELL)];
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(dzPts),new THREE.LineBasicMaterial({color:0xff0000,transparent:true,opacity:0.4})));
+}
+
+// ----  SCENE OBJECTS ----
+let sunMesh;
+function makeSun3D(){
+  const g=new THREE.Group();
+  const sphere=new THREE.Mesh(new THREE.SphereGeometry(0.9,20,20),new THREE.MeshBasicMaterial({color:0xFFD700}));
+  g.add(sphere);
+  // Rays
+  for(let i=0;i<12;i++){
+    const ray=new THREE.Mesh(
+      new THREE.CylinderGeometry(0.05,0.02,0.8),
+      new THREE.MeshBasicMaterial({color:0xFFEE58})
+    );
+    const a=i/12*Math.PI*2;
+    ray.position.set(Math.cos(a)*1.2,Math.sin(a)*1.2,0);
+    ray.rotation.z=a+Math.PI/2;
+    g.add(ray);
+  }
+  g.position.set(COLS*CELL+1.5,8,-1);
+  scene.add(g);sunMesh=g;
+}
+
+function makeHouse3D(){
+  const mat=new THREE.MeshLambertMaterial({color:0xD7CCC8});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(1.8,3.5,ROWS*CELL+1.5),mat);
+  body.position.set(-1.4,1.75,ROWS*CELL/2);body.castShadow=true;body.receiveShadow=true;
+  scene.add(body);
+
+  // Windows
+  const winMat=new THREE.MeshLambertMaterial({color:0x90CAF9,emissive:0x90CAF9,emissiveIntensity:0.3});
+  for(let r=0;r<ROWS;r++){
+    const win=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.05),winMat);
+    win.position.set(-0.5,1.5+Math.random()*0.5,r*CELL+CELL/2);
+    scene.add(win);
+  }
+
+  // Roof
+  const roofMat=new THREE.MeshLambertMaterial({color:0xB71C1C});
+  const roofGeo=new THREE.ConeGeometry(2.4,1.8,4);
+  const roof=new THREE.Mesh(roofGeo,roofMat);
+  roof.position.set(-1.4,4.4,ROWS*CELL/2);roof.rotation.y=Math.PI/4;roof.castShadow=true;
+  scene.add(roof);
+
+  // Door
+  const doorMat=new THREE.MeshLambertMaterial({color:0x5D4037});
+  const door=new THREE.Mesh(new THREE.BoxGeometry(0.6,1.0,0.12),doorMat);
+  door.position.set(-0.5,0.5,ROWS*CELL/2);
+  scene.add(door);
+
+  // Ground label plane (red zone at right)
+  const redGeo=new THREE.PlaneGeometry(CELL*0.9,ROWS*CELL);
+  const redMat=new THREE.MeshBasicMaterial({color:0xFF5722,transparent:true,opacity:0.08,depthWrite:false});
+  const red=new THREE.Mesh(redGeo,redMat);
+  red.rotation.x=-Math.PI/2;red.position.set((COLS-0.5)*CELL,0.02,ROWS*CELL/2);
+  scene.add(red);
+}
+
+// ============================================================
+//  GRID INTERACTION
+// ============================================================
+const gridCells=[];
+let hoveredCell=null;
+
+function buildGrid(){
+  // Clear old cells
+  gridCells.forEach(c=>scene.remove(c));gridCells.length=0;
+
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const geo=new THREE.PlaneGeometry(CELL*0.93,CELL*0.93);
+      const mat=new THREE.MeshBasicMaterial({color:0x4CAF50,transparent:true,opacity:0,depthWrite:false});
+      const mesh=new THREE.Mesh(geo,mat);
+      mesh.rotation.x=-Math.PI/2;
+      mesh.position.set(c*CELL+CELL/2,0.015,r*CELL+CELL/2);
+      mesh.userData={row:r,col:c};
+      scene.add(mesh);gridCells.push(mesh);
+    }
+  }
+
+  const cvs=document.getElementById('gameCanvas');
+  const raycaster=new THREE.Raycaster();
+  const mouse=new THREE.Vector2();
+
+  cvs.addEventListener('mousemove',e=>{
+    if(!gameRunning)return;
+    mouse.x=(e.clientX/window.innerWidth)*2-1;
+    mouse.y=-(e.clientY/window.innerHeight)*2+1;
+    raycaster.setFromCamera(mouse,camera);
+    const hits=raycaster.intersectObjects(gridCells);
+    if(hoveredCell)hoveredCell.material.opacity=0;
+    if(hits.length){
+      hoveredCell=hits[0].object;
+      hoveredCell.material.color.set(myRole==='plants'?0x00FF00:0xFF0000);
+      hoveredCell.material.opacity=0.22;
+    } else hoveredCell=null;
+  });
+
+  cvs.addEventListener('click',e=>{
+    if(!gameRunning)return;
+    mouse.x=(e.clientX/window.innerWidth)*2-1;
+    mouse.y=-(e.clientY/window.innerHeight)*2+1;
+    raycaster.setFromCamera(mouse,camera);
+    const hits=raycaster.intersectObjects(gridCells);
+    if(!hits.length)return;
+    const {row,col}=hits[0].object.userData;
+    if(myRole==='plants') handlePlantClick(row,col);
+    else handleZombieClick(row,col);
+  });
+}
+
+// ============================================================
+//  PLANT LOGIC
+// ============================================================
+function handlePlantClick(row,col){
+  const pd=PLANT_DATA[selectedPlant];
+  const key=`${row},${col}`;
+  if(plantGrid[key]){showToast('UGG! ALREADY PLANT THERE!');return;}
+  if(col>=COLS-1){showToast('TOO FAR RIGHT! ZOMBIE ZONE!');return;}
+  if(sun<pd.cost){showToast(`NEED ${pd.cost} SUN! ONLY HAVE ${sun}! UGG!`);return;}
+  sun-=pd.cost;
+  placePlant(row,col,selectedPlant);
+  updateHUD();
+}
+
+function placePlant(row,col,type){
+  const pd=PLANT_DATA[type];
+  const x=col*CELL+CELL/2, z=row*CELL+CELL/2;
+  const mesh=buildPlantMesh(type,x,z);
+  const key=`${row},${col}`;
+  const obj={
+    type,row,col,hp:pd.hp,maxHp:pd.hp,mesh,key,
+    lastShot:0,lastSun:Date.now()+(Math.random()*3000+2000),
+    lastChomp:0
+  };
+  plants.push(obj);plantGrid[key]=obj;
+
+  if(type==='cherry'){
+    setTimeout(()=>triggerCherry(key),300);
+  } else {
+    spawnParticles(x,0.5,z,pd.color,10);
+    showToast(`🌱 ${pd.name} PLANTED! UGG SMART!`);
+  }
+}
+
+function buildPlantMesh(type,x,z){
+  let g;
+  if(type==='sunflower') g=makeSunflower(x,z);
+  else if(type==='wallnut') g=makeWallnut(x,z);
+  else if(type==='iceshooter') g=makeIcePlant(x,z);
+  else if(type==='chomper') g=makeChomper(x,z);
+  else if(type==='cherry') g=makeCherry(x,z);
+  else g=makePeashooter(x,z,PLANT_DATA[type].color);
+  return g;
+}
+
+function makeSunflower(x,z){
+  const g=new THREE.Group();
+  const stemMat=new THREE.MeshLambertMaterial({color:0x388E3C});
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.09,0.85),stemMat);
+  stem.position.y=0.42;g.add(stem);
+  const faceMat=new THREE.MeshLambertMaterial({color:0x3E2723});
+  const face=new THREE.Mesh(new THREE.CircleGeometry(0.28,16),faceMat);
+  face.rotation.x=-Math.PI/2+0.25;face.position.y=0.88;g.add(face);
+  const petalMat=new THREE.MeshLambertMaterial({color:0xFFD700});
+  for(let i=0;i<10;i++){
+    const p=new THREE.Mesh(new THREE.SphereGeometry(0.14,8,6),petalMat);
+    const a=i/10*Math.PI*2;
+    p.position.set(Math.cos(a)*0.36,0.88,Math.sin(a)*0.36);
+    p.scale.y=1.4;g.add(p);
+  }
+  // Eyes
+  const eyeMat=new THREE.MeshLambertMaterial({color:0xFFEB3B});
+  for(const ox of[-0.1,0.1]){
+    const e=new THREE.Mesh(new THREE.SphereGeometry(0.05,6,6),eyeMat);
+    e.position.set(ox,0.91,0.25);g.add(e);
+  }
+  g.position.set(x,0,z);g.castShadow=true;scene.add(g);return g;
+}
+
+function makePeashooter(x,z,color){
+  const g=new THREE.Group();
+  const stemMat=new THREE.MeshLambertMaterial({color:0x388E3C});
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.1,0.75),stemMat);
+  stem.position.y=0.37;g.add(stem);
+  const headMat=new THREE.MeshLambertMaterial({color});
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.3,12,12),headMat);
+  head.position.y=0.85;g.add(head);
+  const barrelMat=new THREE.MeshLambertMaterial({color:0x1B5E20});
+  const barrel=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.55),barrelMat);
+  barrel.rotation.z=Math.PI/2;barrel.position.set(0.42,0.85,0);g.add(barrel);
+  g.position.set(x,0,z);g.castShadow=true;scene.add(g);return g;
+}
+
+function makeIcePlant(x,z){
+  const g=new THREE.Group();
+  const stemMat=new THREE.MeshLambertMaterial({color:0x26C6DA});
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.1,0.75),stemMat);
+  stem.position.y=0.37;g.add(stem);
+  const headMat=new THREE.MeshLambertMaterial({color:0x80DEEA});
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.3,12,12),headMat);
+  head.position.y=0.85;g.add(head);
+  // Ice crystals
+  const iceMat=new THREE.MeshLambertMaterial({color:0xE1F5FE,transparent:true,opacity:0.8});
+  for(let i=0;i<6;i++){
+    const cr=new THREE.Mesh(new THREE.OctahedronGeometry(0.1),iceMat);
+    const a=i/6*Math.PI*2;
+    cr.position.set(Math.cos(a)*0.38,0.85,Math.sin(a)*0.38);
+    g.add(cr);
+  }
+  const barrel=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.55),new THREE.MeshLambertMaterial({color:0x0097A7}));
+  barrel.rotation.z=Math.PI/2;barrel.position.set(0.42,0.85,0);g.add(barrel);
+  g.position.set(x,0,z);g.castShadow=true;scene.add(g);return g;
+}
+
+function makeWallnut(x,z){
+  const g=new THREE.Group();
+  const nutMat=new THREE.MeshLambertMaterial({color:0x8D6E63});
+  const nut=new THREE.Mesh(new THREE.SphereGeometry(0.48,12,12),nutMat);
+  nut.scale.y=1.1;nut.position.y=0.52;g.add(nut);
+  // Face
+  const eyeMat=new THREE.MeshLambertMaterial({color:0x3E2723});
+  for(const ox of[-0.15,0.15]){
+    const e=new THREE.Mesh(new THREE.SphereGeometry(0.06,8,8),eyeMat);
+    e.position.set(ox,0.58,0.42);g.add(e);
+  }
+  const mouthMat=new THREE.MeshLambertMaterial({color:0x1A237E});
+  const mouth=new THREE.Mesh(new THREE.TorusGeometry(0.1,0.03,6,12,Math.PI),mouthMat);
+  mouth.position.set(0,0.38,0.44);mouth.rotation.z=Math.PI;g.add(mouth);
+  g.position.set(x,0,z);g.castShadow=true;scene.add(g);return g;
+}
+
+function makeChomper(x,z){
+  const g=new THREE.Group();
+  const stemMat=new THREE.MeshLambertMaterial({color:0x2E7D32});
+  const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.1,0.7),stemMat);
+  stem.position.y=0.35;g.add(stem);
+  const bulbMat=new THREE.MeshLambertMaterial({color:0x00C853});
+  const bulb=new THREE.Mesh(new THREE.SphereGeometry(0.38,12,12),bulbMat);
+  bulb.scale.y=1.2;bulb.position.y=0.9;g.add(bulb);
+  // Big mouth
+  const jawMat=new THREE.MeshLambertMaterial({color:0xE91E63});
+  const jaw=new THREE.Mesh(new THREE.SphereGeometry(0.25,10,6,0,Math.PI*2,0,Math.PI/2),jawMat);
+  jaw.rotation.x=Math.PI;jaw.position.y=0.75;g.add(jaw);
+  // Teeth
+  const teethMat=new THREE.MeshLambertMaterial({color:0xffffff});
+  for(let t=0;t<4;t++){
+    const tooth=new THREE.Mesh(new THREE.ConeGeometry(0.05,0.15,4),teethMat);
+    tooth.position.set(-0.15+t*0.1,0.72,0.22);tooth.rotation.x=-0.3;g.add(tooth);
+  }
+  g.position.set(x,0,z);g.castShadow=true;scene.add(g);return g;
+}
+
+function makeCherry(x,z){
+  const g=new THREE.Group();
+  const chMat1=new THREE.MeshLambertMaterial({color:0xE53935,emissive:0xFF0000,emissiveIntensity:0.4});
+  const chMat2=new THREE.MeshLambertMaterial({color:0xC62828,emissive:0xFF0000,emissiveIntensity:0.4});
+  const c1=new THREE.Mesh(new THREE.SphereGeometry(0.28,12,12),chMat1);c1.position.set(-0.22,0.7,0);g.add(c1);
+  const c2=new THREE.Mesh(new THREE.SphereGeometry(0.28,12,12),chMat2);c2.position.set(0.22,0.7,0);g.add(c2);
+  const stemMat=new THREE.MeshLambertMaterial({color:0x2E7D32});
+  const s1=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.4),stemMat);
+  s1.position.set(-0.08,1.0,0);s1.rotation.z=0.35;g.add(s1);
+  const s2=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,0.4),stemMat);
+  s2.position.set(0.08,1.0,0);s2.rotation.z=-0.35;g.add(s2);
+  // Fuse glow
+  const fuseMat=new THREE.MeshBasicMaterial({color:0xFF6F00});
+  const fuse=new THREE.Mesh(new THREE.SphereGeometry(0.08,6,6),fuseMat);
+  fuse.position.set(0,1.25,0);fuse.userData.isFuse=true;g.add(fuse);
+  g.position.set(x,0,z);g.castShadow=true;scene.add(g);return g;
+}
+
+function triggerCherry(key){
+  const pl=plantGrid[key];if(!pl)return;
+  const cx=pl.col*CELL+CELL/2, cz=pl.row*CELL+CELL/2;
+  showToast('💥 CHERRY BOMB! KABOOM! UGG!');
+  spawnParticles(cx,1,cz,0xFF5722,40);
+  spawnParticles(cx,1,cz,0xFFD700,20);
+  // Damage all zombies in radius
+  const radius=PLANT_DATA.cherry.explodeRadius*CELL*1.4;
+  zombies.forEach(z=>{
+    if(z.dead)return;
+    const dx=z.mesh.position.x-cx, dz=z.mesh.position.z-cz;
+    if(Math.sqrt(dx*dx+dz*dz)<radius) damageZombie(z,999);
+  });
+  removePlant(key);
+}
+
+function selectPlant(type){
+  selectedPlant=type;
+  document.querySelectorAll('.plant-card').forEach(c=>c.classList.remove('selected'));
+  document.querySelector(`[data-plant="${type}"]`).classList.add('selected');
+}
+
+// ============================================================
+//  ZOMBIE LOGIC
+// ============================================================
+function handleZombieClick(row,col){
+  if(col<COLS-2){showToast('ZOMBIE SPAWN FROM RIGHT ZONE! UGG!');return;}
+  if(Date.now()<zombieCooldownUntil){
+    const wait=Math.ceil((zombieCooldownUntil-Date.now())/1000);
+    showToast(`WAIT ${wait}s! UGG TIRED!`);return;
+  }
+  if(brainCount<=0){showToast('OUT OF BRAINS! WAIT NEXT WAVE! UGG!');return;}
+  spawnZombie(row,selectedZType);
+  brainCount--;zombieCooldownUntil=Date.now()+1200;
+  updateHUD();
+}
+
+function selectZType(i){
+  selectedZType=i;
+  document.querySelectorAll('.zombie-card').forEach(c=>c.classList.remove('selected'));
+  document.querySelector(`[data-ztype="${i}"]`).classList.add('selected');
+}
+
+function spawnZombie(row, typeIdx){
+  const ti = typeIdx!==undefined ? typeIdx : Math.floor(Math.random()*Math.min(ZOMBIE_TYPES.length,1+Math.floor(wave/2)));
+  const zt=ZOMBIE_TYPES[ti];
+  const r=row!==undefined ? row : Math.floor(Math.random()*ROWS);
+  const startX=(COLS)*CELL+0.5+Math.random()*0.3;
+  const zPos=r*CELL+CELL/2;
+  const mesh=buildZombieMesh(startX,zPos,zt);
+  const obj={
+    typeIdx:ti,row:r,hp:zt.hp*(1+wave*0.08),maxHp:zt.hp*(1+wave*0.08),
+    speed:zt.speed,damage:zt.damage,mesh,lastAttack:0,target:null,dead:false,
+    walkCycle:Math.random()*Math.PI*2
+  };
+  zombies.push(obj);
+}
+
+function buildZombieMesh(x,z,zt){
+  const sc=zt.scale||1;
+  const g=new THREE.Group();
+
+  const bodyMat=new THREE.MeshLambertMaterial({color:0x4E342E});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(0.32*sc,0.6*sc,0.28*sc),bodyMat);
+  body.position.y=0.62*sc;body.castShadow=true;g.add(body);
+
+  // Shirt
+  const shirtMat=new THREE.MeshLambertMaterial({color:zt.color});
+  const shirt=new THREE.Mesh(new THREE.BoxGeometry(0.34*sc,0.4*sc,0.3*sc),shirtMat);
+  shirt.position.y=0.65*sc;g.add(shirt);
+
+  const headMat=new THREE.MeshLambertMaterial({color:zt.headColor});
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.3*sc,0.32*sc,0.3*sc),headMat);
+  head.position.y=1.1*sc;head.castShadow=true;g.add(head);
+
+  // Eyes
+  const eyeMat=new THREE.MeshBasicMaterial({color:0xFF0000});
+  for(const ox of[-0.08*sc,0.08*sc]){
+    const e=new THREE.Mesh(new THREE.SphereGeometry(0.04*sc,6,6),eyeMat);
+    e.position.set(ox,1.13*sc,0.14*sc);g.add(e);
+  }
+
+  // Mouth
+  const mMat=new THREE.MeshBasicMaterial({color:0x1A237E});
+  const mouth=new THREE.Mesh(new THREE.BoxGeometry(0.12*sc,0.04*sc,0.05*sc),mMat);
+  mouth.position.set(0,1.02*sc,0.14*sc);g.add(mouth);
+
+  // Arms
+  const armMat=new THREE.MeshLambertMaterial({color:0x4E342E});
+  const armL=new THREE.Mesh(new THREE.CylinderGeometry(0.05*sc,0.05*sc,0.5*sc),armMat);
+  armL.rotation.z=0.7;armL.position.set(-0.36*sc,0.78*sc,0);g.add(armL);
+  const armR=armL.clone();armR.rotation.z=-0.7;armR.position.set(0.36*sc,0.78*sc,0);g.add(armR);
+
+  // Legs
+  const legMat=new THREE.MeshLambertMaterial({color:0x37474F});
+  const legL=new THREE.Mesh(new THREE.CylinderGeometry(0.08*sc,0.07*sc,0.44*sc),legMat);
+  legL.position.set(-0.1*sc,0.22*sc,0);g.add(legL);
+  const legR=legL.clone();legR.position.x=0.1*sc;g.add(legR);
+  legL.userData.isLegL=true;legR.userData.isLegR=true;
+
+  // HP Bar
+  const barBgGeo=new THREE.PlaneGeometry(0.55*sc,0.09*sc);
+  const barBgMat=new THREE.MeshBasicMaterial({color:0x333333});
+  const barBg=new THREE.Mesh(barBgGeo,barBgMat);
+  barBg.position.set(0,1.45*sc,0);barBg.rotation.x=-Math.PI/6;g.add(barBg);
+
+  const barGeo=new THREE.PlaneGeometry(0.52*sc,0.07*sc);
+  const barMat=new THREE.MeshBasicMaterial({color:0x4CAF50});
+  const bar=new THREE.Mesh(barGeo,barMat);
+  bar.position.set(0,1.47*sc,0.01);bar.rotation.x=-Math.PI/6;
+  bar.userData.isHPBar=true;g.add(bar);
+
+  // BOSS special: crown
+  if(zt.scale>1){
+    const crownMat=new THREE.MeshLambertMaterial({color:0xFFD700});
+    for(let i=0;i<5;i++){
+      const spike=new THREE.Mesh(new THREE.ConeGeometry(0.07,0.2),crownMat);
+      const a=i/5*Math.PI*2;
+      spike.position.set(Math.cos(a)*0.12*sc,1.42*sc,Math.sin(a)*0.12*sc);
+      g.add(spike);
+    }
+  }
+
+  g.position.set(x,0,z);
+  scene.add(g);return g;
+}
+
+// ============================================================
+//  DAMAGE HELPERS
+// ============================================================
+function damagePlant(plant,dmg){
+  plant.hp-=dmg;
+  if(plant.hp<=0) removePlant(plant.key);
+  else {
+    // Flash red
+    const ratio=plant.hp/plant.maxHp;
+    plant.mesh.traverse(c=>{
+      if(c.isMesh&&c.material&&!c.userData.isHPBar){
+        c.material.emissive=new THREE.Color(0xFF0000);
+        c.material.emissiveIntensity=0.4*(1-ratio);
+      }
+    });
+  }
+}
+
+function removePlant(key){
+  const p=plantGrid[key];if(!p)return;
+  spawnParticles(p.mesh.position.x,0.5,p.mesh.position.z,0x8D6E63,12);
+  scene.remove(p.mesh);
+  const idx=plants.indexOf(p);if(idx>=0)plants.splice(idx,1);
+  delete plantGrid[key];
+}
+
+function damageZombie(z,dmg){
+  if(z.dead)return;
+  z.hp-=dmg;
+  spawnParticles(z.mesh.position.x,0.8,z.mesh.position.z,0x4CAF50,6);
+  const ratio=Math.max(0,z.hp/z.maxHp);
+  const bar=z.mesh.children.find(c=>c.userData.isHPBar);
+  if(bar){
+    bar.scale.x=ratio;
+    bar.material.color.setHex(ratio>0.6?0x4CAF50:ratio>0.3?0xFF9800:0xFF1744);
+  }
+  if(z.hp<=0){
+    z.dead=true;killed++;score+=ZOMBIE_TYPES[z.typeIdx].hp/10;
+    spawnParticles(z.mesh.position.x,0.5,z.mesh.position.z,0xFF5722,18);
+  }
+}
+
+// ============================================================
+//  PROJECTILE
+// ============================================================
+function shootPea(plant){
+  const pd=PLANT_DATA[plant.type];
+  const color=pd.slow?0x4DD0E1:0x4CAF50;
+  const geo=new THREE.SphereGeometry(0.1,8,8);
+  const mat=new THREE.MeshLambertMaterial({color,emissive:new THREE.Color(color),emissiveIntensity:0.5});
+  const mesh=new THREE.Mesh(geo,mat);
+  const startX=plant.col*CELL+CELL+0.1;
+  const startZ=plant.row*CELL+CELL/2;
+  mesh.position.set(startX,0.85,startZ);
+  scene.add(mesh);
+  projectiles.push({mesh,speed:0.016,damage:pd.damage,slow:pd.slow||false,row:plant.row});
+}
+
+// ============================================================
+//  PARTICLES
+// ============================================================
+function spawnParticles(x,y,z,color,count){
+  for(let i=0;i<count;i++){
+    const geo=new THREE.SphereGeometry(0.04+Math.random()*0.09,4,4);
+    const mat=new THREE.MeshBasicMaterial({color,transparent:true,opacity:1});
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.position.set(x+(Math.random()-0.5)*0.3,y,z+(Math.random()-0.5)*0.3);
+    const vel=new THREE.Vector3(
+      (Math.random()-0.5)*0.1,
+      Math.random()*0.12+0.03,
+      (Math.random()-0.5)*0.1
+    );
+    const life=18+Math.floor(Math.random()*18);
+    scene.add(mesh);
+    particles.push({mesh,vel,life,maxLife:life});
+  }
+}
+
+// ============================================================
+//  GAME LOOP
+// ============================================================
+let lastTime=0;
+
+function tick(now){
+  if(!gameRunning){renderer.render(scene,camera);animFrame=requestAnimationFrame(tick);return;}
+  const dt=Math.min(now-lastTime,80);lastTime=now;
+
+  // Animate sun
+  if(sunMesh){sunMesh.rotation.z-=0.005;sunMesh.rotation.y+=0.008;}
+
+  // Sun production (sky)
+  if(Date.now()>nextSunTime){
+    sun=Math.min(999,sun+30);
+    nextSunTime=Date.now()+9000;
+    updateHUD();
+  }
+
+  // AUTO zombie spawn (for single-player or extra pressure)
+  if(soloMode||myRole==='plants'){
+    if(Date.now()>nextZombieSpawn){
+      spawnZombie(undefined,undefined);
+      const interval=Math.max(1200,5000-wave*300);
+      nextZombieSpawn=Date.now()+interval;
+    }
+  }
+
+  // PLANT UPDATES
+  plants.forEach(p=>{
+    // Sway
+    if(p.mesh)p.mesh.rotation.z=Math.sin(now*0.0018+p.col*0.8)*0.06;
+
+    const pd=PLANT_DATA[p.type];
+
+    // Sunflower produces sun
+    if(p.type==='sunflower'&&Date.now()>p.lastSun){
+      sun=Math.min(999,sun+30);
+      p.lastSun=Date.now()+7500;
+      spawnParticles(p.mesh.position.x,0.9,p.mesh.position.z,0xFFD700,4);
+      updateHUD();
+    }
+
+    // Shooters fire
+    if(pd.damage&&pd.rate){
+      if(Date.now()-p.lastShot>pd.rate){
+        // find zombie in same row ahead
+        const rowZ=zombies.filter(z=>!z.dead&&z.row===p.row&&z.mesh.position.x>p.col*CELL+0.2);
+        if(rowZ.length){p.lastShot=Date.now();shootPea(p);}
+      }
+    }
+
+    // Chomper attacks adjacent zombie
+    if(p.type==='chomper'&&Date.now()-p.lastChomp>PLANT_DATA.chomper.digCooldown){
+      const near=zombies.find(z=>!z.dead&&z.row===p.row&&Math.abs(z.mesh.position.x-(p.col*CELL+CELL/2))<1.2);
+      if(near){p.lastChomp=Date.now();damageZombie(near,999);spawnParticles(p.mesh.position.x,1,p.mesh.position.z,0xE91E63,15);}
+    }
+  });
+
+  // ZOMBIE UPDATES
+  zombies.forEach(z=>{
+    if(z.dead)return;
+    z.walkCycle+=0.08;
+    // Walk animation
+    z.mesh.children.forEach(c=>{
+      if(c.userData.isLegL)c.rotation.x=Math.sin(z.walkCycle)*0.5;
+      if(c.userData.isLegR)c.rotation.x=Math.sin(z.walkCycle+Math.PI)*0.5;
+    });
+    z.mesh.rotation.y=Math.PI; // face left
+
+    // Find plant target in same row
+    z.target=null;
+    for(const key in plantGrid){
+      const pl=plantGrid[key];
+      if(pl.row===z.row){
+        const px=pl.col*CELL+CELL/2;
+        if(Math.abs(z.mesh.position.x-px)<0.5){z.target=pl;break;}
+      }
+    }
+
+    if(z.target){
+      // Attack plant
+      if(Date.now()-z.lastAttack>900){
+        z.lastAttack=Date.now();
+        damagePlant(z.target,z.damage);
+        // Bite animation
+        z.mesh.children.forEach(c=>{if(c.userData.isLegL||c.userData.isLegR)c.rotation.x=0;});
+      }
+    } else {
+      // Move left
+      z.mesh.position.x-=z.speed*dt;
+      // Check house
+      if(z.mesh.position.x<0.2){gameOver(false);return;}
+    }
+  });
+
+  // PROJECTILE UPDATES
+  for(let i=projectiles.length-1;i>=0;i--){
+    const pj=projectiles[i];
+    pj.mesh.position.x+=pj.speed*dt;
+    pj.mesh.rotation.y+=0.2;
+    if(pj.mesh.position.x>COLS*CELL+2){
+      scene.remove(pj.mesh);projectiles.splice(i,1);continue;
+    }
+    let hit=false;
+    for(const z of zombies){
+      if(z.dead)continue;
+      const dx=Math.abs(pj.mesh.position.x-z.mesh.position.x);
+      const dz=Math.abs(pj.mesh.position.z-z.mesh.position.z);
+      if(dx<0.45&&dz<0.4){
+        damageZombie(z,pj.damage);
+        if(pj.slow)z.speed=Math.max(0.001,z.speed*0.55);
+        scene.remove(pj.mesh);projectiles.splice(i,1);hit=true;break;
+      }
+    }
+  }
+
+  // REMOVE DEAD ZOMBIES
+  for(let i=zombies.length-1;i>=0;i--){
+    if(zombies[i].dead){scene.remove(zombies[i].mesh);zombies.splice(i,1);}
+  }
+
+  // PARTICLE UPDATES
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.mesh.position.add(p.vel);
+    p.vel.y-=0.004;p.life--;
+    p.mesh.material.opacity=p.life/p.maxLife;
+    if(p.life<=0){scene.remove(p.mesh);particles.splice(i,1);}
+  }
+
+  // WAVE CHECK
+  if(killed>=waveKillTarget){
+    waveKillTarget+=10+wave*3;
+    wave++;
+    brainCount=Math.min(brainCount+3,15);
+    showToast(`🌊 WAVE ${wave} INCOMING! MORE ZOMBIE! UGG SCARED!`,2500);
+    nextZombieSpawn=Date.now()+2500;
+    updateHUD();
+  }
+
+  // CHERRY fuse animation
+  plants.filter(p=>p.type==='cherry').forEach(p=>{
+    const fuse=p.mesh.children.find(c=>c.userData.isFuse);
+    if(fuse)fuse.material.color.setHex(Math.sin(now*0.02)>0?0xFF6F00:0xFF0000);
+  });
+
+  updateHUD();
+  renderer.render(scene,camera);
+  animFrame=requestAnimationFrame(tick);
+}
+
+// ============================================================
+//  HUD UPDATE
+// ============================================================
+function updateHUD(){
+  document.getElementById('sunVal').textContent=sun;
+  document.getElementById('waveInfo').textContent=`WAVE ${wave} | ${killed} SMASHED`;
+  document.getElementById('scoreDisplay').textContent=`SCORE: ${Math.floor(score)}`;
+  document.getElementById('brainVal').textContent=brainCount;
+
+  document.querySelectorAll('.plant-card').forEach(c=>{
+    const type=c.dataset.plant;
+    if(type)c.classList.toggle('cant-afford',sun<PLANT_DATA[type].cost);
+  });
+
+  const cdLeft=zombieCooldownUntil-Date.now();
+  const cdEl=document.getElementById('cooldownMsg');
+  if(cdEl){
+    if(cdLeft>0) cdEl.textContent=`COOLING...\n${(cdLeft/1000).toFixed(1)}s`;
+    else cdEl.textContent=`CLICK RIGHT SIDE\nTO SPAWN!\n🧟`;
+  }
+}
+
+// ============================================================
+//  GAME OVER
+// ============================================================
+function gameOver(win){
+  gameRunning=false;
+  const ov=document.getElementById('overlay');
+  ov.style.display='flex';
+  const title=document.getElementById('overlayTitle');
+  const sc=document.getElementById('overlayScore');
+  const msg=document.getElementById('overlayMsg');
+  if(win){
+    title.textContent='🏆 UGG WIN!';title.style.color='#ffd700';
+    sc.textContent=`SCORE: ${Math.floor(score)} | WAVE: ${wave} | KILLS: ${killed}`;
+    msg.textContent='PLANT STRONG! ZOMBIE FLEE! PARTNER PROUD OF UGG!';
+  } else {
+    title.textContent='🧟 ZOMBIE WIN!';title.style.color='#FF5722';
+    sc.textContent=`FINAL SCORE: ${Math.floor(score)} | WAVE ${wave} REACHED`;
+    msg.textContent='Zombie eat through wall... UGG very sad. Try again? Partner say yes?';
+  }
+}
+
+function restartGame(){
+  document.getElementById('overlay').style.display='none';
+  cleanupGame();
+  sun=150;wave=1;score=0;killed=0;waveKills=0;waveKillTarget=8;
+  brainCount=3+wave*2;
+  nextSunTime=Date.now()+9000;
+  nextZombieSpawn=Date.now()+3500;
+  zombieCooldownUntil=0;gameRunning=true;lastTime=performance.now();
+  updateHUD();
+  animFrame=requestAnimationFrame(tick);
+}
+
+function backToLobby(){
+  document.getElementById('overlay').style.display='none';
+  cleanupGame();
+  document.getElementById('gameWrapper').style.display='none';
+  document.getElementById('lobby').style.display='flex';
+  document.getElementById('screenCreate').style.display='none';
+  document.getElementById('screenMain').style.display='block';
+  soloMode=false;chosenRole='plants';
+  document.querySelectorAll('.role-btn').forEach(b=>b.classList.remove('active'));
+}
+
+function cleanupGame(){
+  if(animFrame)cancelAnimationFrame(animFrame);
+  plants.forEach(p=>scene&&scene.remove(p.mesh));
+  zombies.forEach(z=>scene&&scene.remove(z.mesh));
+  projectiles.forEach(p=>scene&&scene.remove(p.mesh));
+  particles.forEach(p=>scene&&scene.remove(p.mesh));
+  plants.length=0;zombies.length=0;projectiles.length=0;particles.length=0;
+  Object.keys(plantGrid).forEach(k=>delete plantGrid[k]);
+}
+
+// ============================================================
+//  RESIZE
+// ============================================================
+window.addEventListener('resize',()=>{
+  if(!renderer||!camera)return;
+  const W=window.innerWidth,H=window.innerHeight;
+  renderer.setSize(W,H);
+  camera.aspect=W/H;camera.updateProjectionMatrix();
+  const cvs=document.getElementById('gameCanvas');
+  cvs.width=W;cvs.height=H;
+});
+</script>
+</body>
+</html>
