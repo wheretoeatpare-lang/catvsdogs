@@ -46,7 +46,7 @@ const CONFIG = {
 
 // Replace with your Cloudflare Worker WebSocket URL after deploying
 // For local dev use wrangler dev URL, e.g. ws://localhost:8787
-const WS_URL = (location.hostname === 'localhost')
+const WS_URL = 'wss://catvsdogs.webmasterjamez.workers.dev/vs/';
   ? 'ws://localhost:8787'
   : 'wss://cat-dog-escape.YOUR-SUBDOMAIN.workers.dev';  // ← update after deploy
 
